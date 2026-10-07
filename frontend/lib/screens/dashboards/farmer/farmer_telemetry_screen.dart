@@ -86,8 +86,8 @@ class _FarmerTelemetryScreenState extends State<FarmerTelemetryScreen> {
           slivers: [
             SliverAppBar(
               pinned: true,
-              backgroundColor: const Color(0xD90B1326),
-              foregroundColor: Colors.white,
+              backgroundColor: const Color(0xF2FFFFFF),
+              foregroundColor: const Color(0xFF0F172A),
               title: const Text('Silo telemetry'),
               actions: [
                 IconButton(
@@ -125,7 +125,7 @@ class _FarmerTelemetryScreenState extends State<FarmerTelemetryScreen> {
                     const Text(
                       'Recent node readings',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: Color(0xFF0F172A),
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
                       ),
@@ -221,12 +221,10 @@ class _FarmerTelemetryScreenState extends State<FarmerTelemetryScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF171F33).withValues(alpha: 0.94),
+        color: const Color(0xF2FFFFFF),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: online
-              ? const Color(0xFF4EDEA3).withValues(alpha: 0.35)
-              : Colors.white12,
+          color: online ? const Color(0xFFD7F3E3) : const Color(0xFFE2E8F0),
         ),
       ),
       child: Column(
@@ -237,13 +235,13 @@ class _FarmerTelemetryScreenState extends State<FarmerTelemetryScreen> {
               Icon(
                 Icons.circle,
                 size: 10,
-                color: online ? const Color(0xFF4EDEA3) : Colors.amber,
+                color: online ? const Color(0xFF0F5132) : Colors.amber,
               ),
               const SizedBox(width: 8),
               Text(
                 online ? 'NODE ONLINE' : 'WAITING FOR NODE',
                 style: TextStyle(
-                  color: online ? const Color(0xFF4EDEA3) : Colors.amber,
+                  color: online ? const Color(0xFF0F5132) : Colors.amber,
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 1.1,
@@ -256,7 +254,7 @@ class _FarmerTelemetryScreenState extends State<FarmerTelemetryScreen> {
           const Text(
             'Farm Storage Silos',
             style: TextStyle(
-              color: Colors.white,
+              color: Color(0xFF0F172A),
               fontSize: 22,
               fontWeight: FontWeight.w800,
             ),
@@ -266,7 +264,7 @@ class _FarmerTelemetryScreenState extends State<FarmerTelemetryScreen> {
             children: [
               const Icon(
                 Icons.warehouse_outlined,
-                color: Color(0xFF6CF8BB),
+                color: Color(0xFF0F5132),
                 size: 16,
               ),
               const SizedBox(width: 6),
@@ -274,7 +272,7 @@ class _FarmerTelemetryScreenState extends State<FarmerTelemetryScreen> {
                 facility?.isNotEmpty == true
                     ? facility!
                     : 'Storage facility not identified',
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                style: const TextStyle(color: Color(0xFF64748B), fontSize: 12),
               ),
             ],
           ),
@@ -282,7 +280,7 @@ class _FarmerTelemetryScreenState extends State<FarmerTelemetryScreen> {
             const SizedBox(height: 6),
             Text(
               'Node $nodeId',
-              style: const TextStyle(color: Colors.white54, fontSize: 11),
+              style: const TextStyle(color: Color(0xFF64748B), fontSize: 11),
             ),
           ],
           if (hasAlert) ...[
@@ -315,26 +313,26 @@ class _FarmerTelemetryScreenState extends State<FarmerTelemetryScreen> {
   Widget _metricCard(String label, String value, IconData icon) => Container(
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
-      color: const Color(0xFF131B2E).withValues(alpha: 0.95),
+      color: const Color(0xF2FFFFFF),
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+      border: Border.all(color: const Color(0xFFD7F3E3)),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: const Color(0xFF6CF8BB)),
+        Icon(icon, color: const Color(0xFF0F5132)),
         const SizedBox(height: 10),
         Text(
           value,
           style: const TextStyle(
-            color: Colors.white,
+            color: Color(0xFF0F172A),
             fontSize: 17,
             fontWeight: FontWeight.w800,
           ),
         ),
         Text(
           label,
-          style: const TextStyle(color: Colors.white70, fontSize: 11),
+          style: const TextStyle(color: Color(0xFF64748B), fontSize: 11),
         ),
       ],
     ),
@@ -343,32 +341,32 @@ class _FarmerTelemetryScreenState extends State<FarmerTelemetryScreen> {
   Widget _nodeSearch() => Container(
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
-      color: const Color(0xFF131B2E).withValues(alpha: 0.95),
+      color: const Color(0xF2FFFFFF),
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+      border: Border.all(color: const Color(0xFFD7F3E3)),
     ),
     child: TextField(
       controller: _nodeController,
-      style: const TextStyle(color: Colors.white),
+      style: const TextStyle(color: Color(0xFF0F172A)),
       onSubmitted: (_) => _loadNodeReadings(),
       decoration: InputDecoration(
         labelText: 'Inspect a storage node',
-        labelStyle: const TextStyle(color: Colors.white70),
+        labelStyle: const TextStyle(color: Color(0xFF64748B)),
         hintText: 'Enter node ID',
-        hintStyle: const TextStyle(color: Colors.white38),
-        prefixIcon: const Icon(Icons.sensors_rounded, color: Color(0xFF6CF8BB)),
+        hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+        prefixIcon: const Icon(Icons.sensors_rounded, color: Color(0xFF0F5132)),
         suffixIcon: IconButton(
           onPressed: _loadNodeReadings,
           icon: const Icon(
             Icons.arrow_forward_rounded,
-            color: Color(0xFF6CF8BB),
+            color: Color(0xFF0F5132),
           ),
         ),
         enabledBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Colors.white24),
+          borderSide: BorderSide(color: Color(0xFFE2E8F0)),
         ),
         focusedBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Color(0xFF6CF8BB)),
+          borderSide: BorderSide(color: Color(0xFF0F5132)),
         ),
       ),
     ),
@@ -378,9 +376,9 @@ class _FarmerTelemetryScreenState extends State<FarmerTelemetryScreen> {
     margin: const EdgeInsets.only(bottom: 8),
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: const Color(0xFF131B2E).withValues(alpha: 0.95),
+      color: const Color(0xF2FFFFFF),
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: Colors.white12),
+      border: Border.all(color: const Color(0xFFD7F3E3)),
     ),
     child: Row(
       children: [
@@ -390,13 +388,13 @@ class _FarmerTelemetryScreenState extends State<FarmerTelemetryScreen> {
               : Icons.check_circle_rounded,
           color: reading['alertTriggered'] == true
               ? Colors.amber
-              : const Color(0xFF6CF8BB),
+              : const Color(0xFF0F5132),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: Text(
             'Temperature ${reading['temperature'] ?? '—'}°C • Humidity ${reading['humidity'] ?? '—'}%',
-            style: const TextStyle(color: Colors.white, fontSize: 12),
+            style: const TextStyle(color: Color(0xFF0F172A), fontSize: 12),
           ),
         ),
       ],
@@ -406,9 +404,9 @@ class _FarmerTelemetryScreenState extends State<FarmerTelemetryScreen> {
   Widget _messageCard(String message) => Container(
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: const Color(0xFF131B2E).withValues(alpha: 0.95),
+      color: const Color(0xF2FFFFFF),
       borderRadius: BorderRadius.circular(16),
     ),
-    child: Text(message, style: const TextStyle(color: Colors.white70)),
+    child: Text(message, style: const TextStyle(color: Color(0xFF64748B))),
   );
 }

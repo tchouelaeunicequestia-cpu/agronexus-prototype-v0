@@ -14,9 +14,9 @@ class FarmerBackgroundLayer extends StatelessWidget {
         Image.network(
           imageUrl,
           fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => const ColoredBox(color: Color(0xFF0B1326)),
+          errorBuilder: (_, _, _) => const ColoredBox(color: Color(0xFF0F382C)),
         ),
-        const ColoredBox(color: Color(0xD90B1326)),
+        const ColoredBox(color: Color(0x33FFFFFF)),
       ],
     ),
   );

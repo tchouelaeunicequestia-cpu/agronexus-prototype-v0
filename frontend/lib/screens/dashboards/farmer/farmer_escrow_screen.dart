@@ -87,14 +87,14 @@ class _FarmerEscrowScreenState extends State<FarmerEscrowScreen> {
           const FarmerBackgroundLayer(),
           RefreshIndicator(
             onRefresh: _loadOrders,
-            color: const Color(0xFF6CF8BB),
+            color: const Color(0xFF0F5132),
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
                 SliverAppBar(
                   pinned: true,
-                  backgroundColor: const Color(0xD90B1326),
-                  foregroundColor: Colors.white,
+                  backgroundColor: const Color(0xF2FFFFFF),
+                  foregroundColor: const Color(0xFF0F172A),
                   title: const Text('Escrow & handover ledger'),
                   actions: [
                     IconButton(
@@ -118,7 +118,7 @@ class _FarmerEscrowScreenState extends State<FarmerEscrowScreen> {
                       const Text(
                         'Active escrow runs',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: Color(0xFF0F172A),
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
                         ),
@@ -129,7 +129,7 @@ class _FarmerEscrowScreenState extends State<FarmerEscrowScreen> {
                           padding: EdgeInsets.all(36),
                           child: Center(
                             child: CircularProgressIndicator(
-                              color: Color(0xFF6CF8BB),
+                              color: Color(0xFF0F5132),
                             ),
                           ),
                         )
@@ -169,9 +169,9 @@ class _FarmerEscrowScreenState extends State<FarmerEscrowScreen> {
   Widget _summaryCard(double locked) => Container(
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
-      color: const Color(0xFF171F33).withValues(alpha: 0.94),
+      color: const Color(0xF2FFFFFF),
       borderRadius: BorderRadius.circular(22),
-      border: Border.all(color: const Color(0xFF6CF8BB).withValues(alpha: 0.3)),
+      border: Border.all(color: const Color(0xFFD7F3E3)),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -180,13 +180,13 @@ class _FarmerEscrowScreenState extends State<FarmerEscrowScreen> {
           children: [
             Icon(
               Icons.account_balance_wallet_rounded,
-              color: Color(0xFF6CF8BB),
+              color: Color(0xFF0F5132),
             ),
             SizedBox(width: 10),
             Text(
               'Producer payout protection',
               style: TextStyle(
-                color: Colors.white,
+                color: Color(0xFF0F172A),
                 fontSize: 19,
                 fontWeight: FontWeight.w800,
               ),
@@ -196,7 +196,7 @@ class _FarmerEscrowScreenState extends State<FarmerEscrowScreen> {
         const SizedBox(height: 8),
         const Text(
           'Funds and handover stages are shown from your authenticated order ledger.',
-          style: TextStyle(color: Colors.white70, height: 1.35),
+          style: TextStyle(color: Color(0xFF64748B), height: 1.35),
         ),
         const SizedBox(height: 18),
         Row(
@@ -213,7 +213,7 @@ class _FarmerEscrowScreenState extends State<FarmerEscrowScreen> {
   Widget _metric(String label, String value) => Container(
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: Colors.black.withValues(alpha: 0.2),
+      color: const Color(0xFFEFFAF3),
       borderRadius: BorderRadius.circular(14),
     ),
     child: Column(
@@ -222,7 +222,7 @@ class _FarmerEscrowScreenState extends State<FarmerEscrowScreen> {
         Text(
           value,
           style: const TextStyle(
-            color: Colors.white,
+            color: Color(0xFF0F172A),
             fontSize: 17,
             fontWeight: FontWeight.w800,
           ),
@@ -230,7 +230,7 @@ class _FarmerEscrowScreenState extends State<FarmerEscrowScreen> {
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(color: Colors.white60, fontSize: 11),
+          style: const TextStyle(color: Color(0xFF64748B), fontSize: 11),
         ),
       ],
     ),
@@ -245,22 +245,22 @@ class _FarmerEscrowScreenState extends State<FarmerEscrowScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF131B2E).withValues(alpha: 0.95),
+        color: const Color(0xF2FFFFFF),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+        border: Border.all(color: const Color(0xFFD7F3E3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.lock_rounded, color: Color(0xFF6CF8BB)),
+              const Icon(Icons.lock_rounded, color: Color(0xFF0F5132)),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   title,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: Color(0xFF0F172A),
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                   ),
@@ -272,13 +272,13 @@ class _FarmerEscrowScreenState extends State<FarmerEscrowScreen> {
           const SizedBox(height: 12),
           Text(
             'Order $orderCode',
-            style: const TextStyle(color: Colors.white60, fontSize: 12),
+            style: const TextStyle(color: Color(0xFF64748B), fontSize: 12),
           ),
           const SizedBox(height: 6),
           Text(
             'Escrow value: ${_money(_amount(order))}  •  Quantity: ${order['quantity'] ?? 'Unavailable'}',
             style: const TextStyle(
-              color: Colors.white,
+              color: Color(0xFF0F172A),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -303,8 +303,8 @@ class _FarmerEscrowScreenState extends State<FarmerEscrowScreen> {
                 icon: const Icon(Icons.verified_user_outlined),
                 label: const Text('Verify and dispatch handover'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF6CF8BB),
-                  side: const BorderSide(color: Color(0xFF6CF8BB)),
+                  foregroundColor: const Color(0xFF0F5132),
+                  side: const BorderSide(color: Color(0xFF0F5132)),
                 ),
               ),
             ),
@@ -317,13 +317,13 @@ class _FarmerEscrowScreenState extends State<FarmerEscrowScreen> {
   Widget _statusChip(String status) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
     decoration: BoxDecoration(
-      color: const Color(0xFF6CF8BB).withValues(alpha: 0.14),
+      color: const Color(0xFFEFFAF3),
       borderRadius: BorderRadius.circular(20),
     ),
     child: Text(
       status.replaceAll('_', ' '),
       style: const TextStyle(
-        color: Color(0xFF6CF8BB),
+        color: Color(0xFF0F5132),
         fontSize: 10,
         fontWeight: FontWeight.w800,
       ),
@@ -338,14 +338,14 @@ class _FarmerEscrowScreenState extends State<FarmerEscrowScreen> {
   Widget _messageCard(String message, VoidCallback? retry) => Container(
     padding: const EdgeInsets.all(18),
     decoration: BoxDecoration(
-      color: const Color(0xFF131B2E).withValues(alpha: 0.95),
+      color: const Color(0xF2FFFFFF),
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: Colors.white12),
+      border: Border.all(color: const Color(0xFFD7F3E3)),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(message, style: const TextStyle(color: Colors.white70)),
+        Text(message, style: const TextStyle(color: Color(0xFF64748B))),
         if (retry != null) ...[
           const SizedBox(height: 10),
           TextButton.icon(

@@ -17,8 +17,8 @@ class FarmerBottomNavigation extends StatelessWidget {
       child: Container(
         height: 70,
         decoration: BoxDecoration(
-          color: const Color(0xF20B1326),
-          border: const Border(top: BorderSide(color: Color(0xFF1C2940))),
+          color: const Color(0xF2FFFFFF),
+          border: const Border(top: BorderSide(color: Color(0xFFD7F3E3))),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.28),
@@ -41,11 +41,11 @@ class FarmerBottomNavigation extends StatelessWidget {
                       width: 42,
                       height: 42,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF10B981),
+                        color: const Color(0xFF059669),
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF10B981)
+                            color: const Color(0xFF059669)
                                 .withValues(alpha: 0.3),
                             blurRadius: 12,
                           ),
@@ -53,7 +53,7 @@ class FarmerBottomNavigation extends StatelessWidget {
                       ),
                       child: const Icon(
                         Icons.add_rounded,
-                        color: Color(0xFF003824),
+                        color: Colors.white,
                         size: 28,
                       ),
                     ),
@@ -83,8 +83,8 @@ class FarmerBottomNavigation extends StatelessWidget {
             Icon(
               icon,
               color: selected
-                  ? const Color(0xFF4EDEA3)
-                  : const Color(0xFFBAC6DA),
+                  ? const Color(0xFF0F5132)
+                  : const Color(0xFF64748B),
               size: 20,
             ),
             const SizedBox(height: 3),
@@ -100,7 +100,7 @@ class FarmerBottomNavigation extends StatelessWidget {
     maxLines: 1,
     overflow: TextOverflow.ellipsis,
     style: TextStyle(
-      color: selected ? const Color(0xFF4EDEA3) : const Color(0xFFBAC6DA),
+      color: selected ? const Color(0xFF0F5132) : const Color(0xFF64748B),
       fontSize: 9,
       fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
     ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/services/auth_provider.dart';
+import 'package:frontend/screens/login_screen.dart';
 import 'package:frontend/widgets/farmer_background_layer.dart';
 import 'package:frontend/widgets/farmer_bottom_navigation.dart';
 
@@ -18,20 +19,19 @@ class FarmerProfileScreen extends StatefulWidget {
 }
 
 class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
-  final _nameController = TextEditingController();
-  final _phoneController = TextEditingController();
-  bool _initialized = false;
-  bool _isSaving = false;
+  static const _green = Color(0xFF0F5132);
+  static const _text = Color(0xFF0F172A);
+  static const _muted = Color(0xFF64748B);
+
+  late final TextEditingController _nameController;
+  late final TextEditingController _phoneController;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_initialized) {
-      final user = context.read<AuthProvider>().currentUser;
-      _nameController.text = user?.name ?? '';
-      _phoneController.text = user?.phoneNumber ?? '';
-      _initialized = true;
-    }
+  void initState() {
+    super.initState();
+    final user = context.read<AuthProvider>().currentUser;
+    _nameController = TextEditingController(text: user?.name ?? '');
+    _phoneController = TextEditingController(text: user?.phoneNumber ?? '');
   }
 
   @override
@@ -41,34 +41,32 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
     super.dispose();
   }
 
-  Future<void> _saveProfile() async {
-    if (_nameController.text.trim().isEmpty) {
-      _showMessage('Full name is required.');
-      return;
-    }
-    setState(() => _isSaving = true);
-    try {
-      await context.read<AuthProvider>().updateCurrentUserProfile(
-        fullName: _nameController.text.trim(),
-        phoneNumber: _phoneController.text.trim(),
-      );
-      if (mounted) _showMessage('Profile updated.');
-    } catch (error) {
-      if (mounted)
-        _showMessage(error.toString().replaceFirst('Exception: ', ''));
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
-    }
-  }
-
   void _showMessage(String message) {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
+  Future<void> _signOut() async {
+    await context.read<AuthProvider>().logout();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
+      (_) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().currentUser;
+    final name = user?.name?.trim().isNotEmpty == true
+        ? user!.name!.trim()
+        : 'Farmer';
+    final initials = name
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .take(2)
+        .map((part) => part[0].toUpperCase())
+        .join();
     return Scaffold(
       backgroundColor: Colors.transparent,
       bottomNavigationBar: FarmerBottomNavigation(
@@ -82,89 +80,114 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
             slivers: [
               SliverAppBar(
                 pinned: true,
-                backgroundColor: const Color(0xD90B1326),
-                foregroundColor: Colors.white,
-                title: const Text('Producer profile'),
+                backgroundColor: Colors.white.withValues(alpha: 0.92),
+                foregroundColor: _text,
+                elevation: 0,
+                title: const Text(
+                  'Profile & settings',
+                  style: TextStyle(color: _text, fontWeight: FontWeight.bold),
+                ),
                 actions: [
-                  IconButton(
-                    tooltip: 'Log out',
-                    onPressed: () => context.read<AuthProvider>().logout(),
-                    icon: const Icon(Icons.logout_rounded),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: TextButton.icon(
+                      onPressed: _signOut,
+                      icon: const Icon(Icons.logout_rounded, size: 18),
+                      label: const Text('Logout'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.red.shade700,
+                      ),
+                    ),
                   ),
                 ],
               ),
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+                padding: const EdgeInsets.fromLTRB(16, 22, 16, 32),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
-                    _profileHero(user),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Account details',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _field(
-                      'Full name',
-                      _nameController,
-                      Icons.person_outline_rounded,
-                    ),
-                    const SizedBox(height: 12),
-                    _field(
-                      'Phone number',
-                      _phoneController,
-                      Icons.phone_outlined,
-                    ),
-                    const SizedBox(height: 12),
-                    _readOnlyField(
-                      'Email address',
-                      user?.email ?? '',
-                      Icons.email_outlined,
+                    _profileHero(name, initials, user?.email),
+                    const SizedBox(height: 20),
+                    _sectionTitle('Account'),
+                    const SizedBox(height: 8),
+                    _settingsCard(
+                      children: [
+                        _settingsTile(
+                          icon: Icons.person_outline_rounded,
+                          title: 'Personal information',
+                          subtitle: 'Name, phone and email',
+                          onTap: () => _showEditProfileDialog(user),
+                        ),
+                        _settingsTile(
+                          icon: Icons.agriculture_outlined,
+                          title: 'Farmer account',
+                          subtitle: 'Role: ${user?.role ?? 'FARMER'}',
+                          onTap: () => _showInfoDialog(
+                            'Farmer account',
+                            'Account ID: ${user?.id ?? 'Unavailable'}',
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: _isSaving ? null : _saveProfile,
-                        icon: _isSaving
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.save_outlined),
-                        label: const Text('Save changes'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF10B981),
-                          foregroundColor: const Color(0xFF003824),
-                          padding: const EdgeInsets.symmetric(vertical: 15),
+                    _sectionTitle('Preferences'),
+                    const SizedBox(height: 8),
+                    _settingsCard(
+                      children: [
+                        _settingsTile(
+                          icon: Icons.notifications_none_rounded,
+                          title: 'Notifications',
+                          subtitle: 'Manage farm and order updates',
+                          onTap: () => _showUnavailableMessage(
+                            'Notification preferences are managed by the current account settings.',
+                          ),
                         ),
-                      ),
+                        _settingsTile(
+                          icon: Icons.language_rounded,
+                          title: 'Language',
+                          subtitle: 'Language options',
+                          onTap: () => _showUnavailableMessage(
+                            'Additional language options are not available yet.',
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 28),
-                    const Text(
-                      'Account actions',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                      ),
+                    const SizedBox(height: 20),
+                    _sectionTitle('Security & support'),
+                    const SizedBox(height: 8),
+                    _settingsCard(
+                      children: [
+                        _settingsTile(
+                          icon: Icons.fingerprint_rounded,
+                          title: 'Biometric security',
+                          subtitle: 'Protected when resuming your session',
+                          onTap: () => _showInfoDialog(
+                            'Biometric security',
+                            'Your AgroNexus session uses device authentication when supported.',
+                          ),
+                        ),
+                        _settingsTile(
+                          icon: Icons.help_outline_rounded,
+                          title: 'Help & support',
+                          subtitle: 'Get assistance with your account',
+                          onTap: () => _showUnavailableMessage(
+                            'Support messaging is not available yet.',
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 24),
                     OutlinedButton.icon(
-                      onPressed: () => context.read<AuthProvider>().logout(),
+                      onPressed: _signOut,
                       icon: const Icon(Icons.logout_rounded),
-                      label: const Text('Log out'),
+                      label: const Text('Sign out'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(color: Colors.white54),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        foregroundColor: Colors.red.shade700,
+                        side: BorderSide(color: Colors.red.shade200),
+                        backgroundColor: Colors.white.withValues(alpha: 0.92),
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                     ),
                   ]),
@@ -193,29 +216,25 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
     );
   }
 
-  Widget _profileHero(dynamic user) {
-    final name = user?.name?.toString().trim();
-    final initial = name?.isNotEmpty == true ? name![0].toUpperCase() : 'F';
+  Widget _profileHero(String name, String initials, String? email) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF171F33).withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFF4EDEA3).withValues(alpha: 0.28),
-        ),
+        color: Colors.white.withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFD7F3E3)),
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 34,
-            backgroundColor: const Color(0xFF4EDEA3),
+            backgroundColor: _green,
             child: Text(
-              initial,
+              initials.isEmpty ? 'F' : initials,
               style: const TextStyle(
-                color: Color(0xFF003824),
-                fontSize: 26,
-                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ),
@@ -225,36 +244,39 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  name?.isNotEmpty == true ? name! : 'Producer account',
+                  name,
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 19,
+                    color: _text,
+                    fontSize: 20,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  user?.email ?? '',
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  email ?? 'Email unavailable',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: _muted),
                 ),
                 const SizedBox(height: 8),
-                const Row(
-                  children: [
-                    Icon(
-                      Icons.agriculture_rounded,
-                      color: Color(0xFF6CF8BB),
-                      size: 15,
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFFAF3),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    'FARMER ACCOUNT',
+                    style: TextStyle(
+                      color: _green,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.7,
                     ),
-                    SizedBox(width: 5),
-                    Text(
-                      'Farmer account',
-                      style: TextStyle(
-                        color: Color(0xFF6CF8BB),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -264,43 +286,155 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
     );
   }
 
-  Widget _field(
-    String label,
-    TextEditingController controller,
-    IconData icon,
-  ) => TextField(
-    controller: controller,
-    style: const TextStyle(color: Colors.white),
-    decoration: _decoration(label, icon),
+  Widget _sectionTitle(String title) => Text(
+    title,
+    style: const TextStyle(
+      color: Colors.white,
+      fontSize: 14,
+      fontWeight: FontWeight.bold,
+      letterSpacing: 0.4,
+    ),
   );
 
-  Widget _readOnlyField(String label, String value, IconData icon) =>
-      InputDecorator(
-        decoration: _decoration(label, icon).copyWith(
-          suffixIcon: const Icon(
-            Icons.lock_outline_rounded,
-            color: Colors.white38,
+  Widget _settingsCard({required List<Widget> children}) => Container(
+    decoration: BoxDecoration(
+      color: Colors.white.withValues(alpha: 0.94),
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: const Color(0xFFE2E8F0)),
+    ),
+    child: Column(children: children),
+  );
+
+  Widget _settingsTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) => ListTile(
+    onTap: onTap,
+    leading: Container(
+      padding: const EdgeInsets.all(9),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFFAF3),
+        borderRadius: BorderRadius.circular(11),
+      ),
+      child: Icon(icon, color: _green, size: 21),
+    ),
+    title: Text(
+      title,
+      style: const TextStyle(color: _text, fontWeight: FontWeight.bold),
+    ),
+    subtitle: Text(
+      subtitle,
+      style: const TextStyle(color: _muted, fontSize: 12),
+    ),
+    trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8)),
+  );
+
+  Future<void> _showEditProfileDialog(UserProfile? user) async {
+    _nameController.text = user?.name ?? '';
+    _phoneController.text = user?.phoneNumber ?? '';
+    final formKey = GlobalKey<FormState>();
+    var saving = false;
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Personal information'),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: _nameController,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(labelText: 'Full name'),
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? 'Enter your full name'
+                        : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    initialValue: user?.email ?? '',
+                    readOnly: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      helperText: 'Email cannot be changed',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'Phone number',
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: saving ? null : () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: saving
+                  ? null
+                  : () async {
+                      if (!formKey.currentState!.validate()) return;
+                      setDialogState(() => saving = true);
+                      try {
+                        await context
+                            .read<AuthProvider>()
+                            .updateCurrentUserProfile(
+                              fullName: _nameController.text.trim(),
+                              phoneNumber: _phoneController.text.trim(),
+                            );
+                        if (!mounted) return;
+                        Navigator.pop(dialogContext);
+                        _showMessage('Profile updated successfully.');
+                      } catch (error) {
+                        setDialogState(() => saving = false);
+                        if (!mounted) return;
+                        _showMessage(
+                          error.toString().replaceFirst('Exception: ', ''),
+                        );
+                      }
+                    },
+              child: saving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Save'),
+            ),
+          ],
         ),
-        child: Text(
-          value.isEmpty ? 'Not provided' : value,
-          style: const TextStyle(color: Colors.white70),
-        ),
-      );
+      ),
+    );
+  }
 
-  InputDecoration _decoration(String label, IconData icon) => InputDecoration(
-    labelText: label,
-    labelStyle: const TextStyle(color: Colors.white70),
-    prefixIcon: Icon(icon, color: const Color(0xFF6CF8BB)),
-    filled: true,
-    fillColor: Colors.black.withValues(alpha: 0.58),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: Colors.white24),
-    ),
-    focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: Color(0xFF6CF8BB)),
-    ),
-  );
+  void _showInfoDialog(String title, String message) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showUnavailableMessage(String message) => _showMessage(message);
 }

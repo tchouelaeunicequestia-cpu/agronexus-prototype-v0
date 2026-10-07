@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 
 import 'package:provider/provider.dart';
+import 'package:frontend/screens/login_screen.dart';
 import 'package:frontend/services/api_service.dart';
 import 'package:frontend/services/auth_provider.dart';
 import 'package:frontend/services/draft_service.dart';
@@ -72,6 +73,15 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
         });
       }
     }
+  }
+
+  Future<void> _signOut() async {
+    await context.read<AuthProvider>().logout();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
+      (_) => false,
+    );
   }
 
   double? get _harvestProgress {
@@ -216,7 +226,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.logout_rounded, color: Colors.white),
-                    onPressed: () => authProvider.logout(),
+                    onPressed: _signOut,
                     tooltip: 'Sign Out',
                   ),
                   const SizedBox(width: 8),

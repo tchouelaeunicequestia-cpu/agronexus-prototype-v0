@@ -115,7 +115,7 @@ class _FarmerListingsScreenState extends State<FarmerListingsScreen> {
                         child: Padding(
                           padding: EdgeInsets.all(40),
                           child: CircularProgressIndicator(
-                            color: Color(0xFF6CF8BB),
+                            color: Color(0xFF0F5132),
                           ),
                         ),
                       )
@@ -168,8 +168,8 @@ class _FarmerListingsScreenState extends State<FarmerListingsScreen> {
 
   Widget _appBar() => SliverAppBar(
     pinned: true,
-    backgroundColor: const Color(0xD90B1326),
-    foregroundColor: Colors.white,
+    backgroundColor: const Color(0xF2FFFFFF),
+    foregroundColor: const Color(0xFF0F172A),
     title: const Text('My harvest lots'),
     actions: [
       IconButton(
@@ -188,15 +188,15 @@ class _FarmerListingsScreenState extends State<FarmerListingsScreen> {
   Widget _summaryCard() => Container(
     padding: const EdgeInsets.all(18),
     decoration: BoxDecoration(
-      color: const Color(0xFF171F33).withValues(alpha: 0.94),
+      color: const Color(0xF2FFFFFF),
       borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: const Color(0xFF4EDEA3).withValues(alpha: 0.3)),
+      border: Border.all(color: const Color(0xFFD7F3E3)),
     ),
     child: Row(
       children: [
         const Icon(
           Icons.inventory_2_rounded,
-          color: Color(0xFF6CF8BB),
+          color: Color(0xFF0F5132),
           size: 30,
         ),
         const SizedBox(width: 12),
@@ -204,7 +204,7 @@ class _FarmerListingsScreenState extends State<FarmerListingsScreen> {
           child: Text(
             '${_products.length + _drafts.length} total items in your producer workspace',
             style: const TextStyle(
-              color: Colors.white,
+              color: Color(0xFF0F172A),
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -214,8 +214,8 @@ class _FarmerListingsScreenState extends State<FarmerListingsScreen> {
           icon: const Icon(Icons.add, size: 18),
           label: const Text('Add'),
           style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFF10B981),
-            foregroundColor: const Color(0xFF003824),
+            backgroundColor: const Color(0xFF0F5132),
+            foregroundColor: Colors.white,
           ),
         ),
       ],
@@ -228,21 +228,21 @@ class _FarmerListingsScreenState extends State<FarmerListingsScreen> {
       TextField(
         controller: _searchController,
         onChanged: (_) => setState(() {}),
-        style: const TextStyle(color: Colors.white),
+        style: const TextStyle(color: Color(0xFF0F172A)),
         decoration: InputDecoration(
           hintText: 'Search batch ID, crop type, or sensor cluster',
-          hintStyle: const TextStyle(color: Colors.white54),
-          prefixIcon: const Icon(Icons.search, color: Color(0xFF4EDEA3)),
+          hintStyle: const TextStyle(color: Color(0xFF64748B)),
+          prefixIcon: const Icon(Icons.search, color: Color(0xFF0F5132)),
           suffixIcon: IconButton(
             tooltip: 'Clear search',
             onPressed: () {
               _searchController.clear();
               setState(() {});
             },
-            icon: const Icon(Icons.close, color: Colors.white54),
+            icon: const Icon(Icons.close, color: Color(0xFF64748B)),
           ),
           filled: true,
-          fillColor: const Color(0xFF060E20).withValues(alpha: 0.9),
+          fillColor: const Color(0xF2FFFFFF),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
             borderSide: BorderSide.none,
@@ -258,12 +258,12 @@ class _FarmerListingsScreenState extends State<FarmerListingsScreen> {
                 label: Text(filter),
                 selected: _filter == filter,
                 onSelected: (_) => setState(() => _filter = filter),
-                selectedColor: const Color(0xFF10B981),
-                backgroundColor: const Color(0xFF171F33),
+                selectedColor: const Color(0xFFEFFAF3),
+                backgroundColor: const Color(0xF2FFFFFF),
                 labelStyle: TextStyle(
                   color: _filter == filter
-                      ? const Color(0xFF003824)
-                      : const Color(0xFFBAC6DA),
+                      ? const Color(0xFF0F5132)
+                      : const Color(0xFF64748B),
                   fontWeight: FontWeight.w700,
                 ),
                 side: BorderSide.none,
@@ -280,7 +280,7 @@ class _FarmerListingsScreenState extends State<FarmerListingsScreen> {
       Text(
         title,
         style: const TextStyle(
-          color: Colors.white,
+          color: Color(0xFF0F172A),
           fontSize: 18,
           fontWeight: FontWeight.w800,
         ),
@@ -288,7 +288,7 @@ class _FarmerListingsScreenState extends State<FarmerListingsScreen> {
       Text(
         '$count',
         style: const TextStyle(
-          color: Color(0xFF4EDEA3),
+          color: Color(0xFF0F5132),
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -342,15 +342,15 @@ class _FarmerListingsScreenState extends State<FarmerListingsScreen> {
     margin: const EdgeInsets.only(bottom: 10),
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: const Color(0xFF131B2E).withValues(alpha: 0.95),
+      color: const Color(0xF2FFFFFF),
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+      border: Border.all(color: const Color(0xFFD7F3E3)),
     ),
     child: Row(
       children: [
         CircleAvatar(
-          backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.18),
-          child: Icon(icon, color: const Color(0xFF4EDEA3)),
+          backgroundColor: const Color(0xFFEFFAF3),
+          child: Icon(icon, color: const Color(0xFF0F5132)),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -360,19 +360,19 @@ class _FarmerListingsScreenState extends State<FarmerListingsScreen> {
               Text(
                 title,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: Color(0xFF0F172A),
                   fontWeight: FontWeight.w800,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 subtitle,
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
+                style: const TextStyle(color: Color(0xFF64748B), fontSize: 12),
               ),
               Text(
                 detail,
                 style: const TextStyle(
-                  color: Color(0xFF6CF8BB),
+                  color: Color(0xFF0F5132),
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                 ),
@@ -388,8 +388,8 @@ class _FarmerListingsScreenState extends State<FarmerListingsScreen> {
                 fontWeight: FontWeight.bold,
               ),
               backgroundColor: status == 'ACTIVE'
-                  ? const Color(0xFF174A38)
-                  : const Color(0xFF3A3120),
+                  ? const Color(0xFFEFFAF3)
+                  : const Color(0xFFFFF7E6),
               side: BorderSide.none,
             ),
       ],
@@ -405,16 +405,19 @@ class _FarmerListingsScreenState extends State<FarmerListingsScreen> {
   }) => Container(
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
-      color: const Color(0xFF131B2E).withValues(alpha: 0.95),
+      color: const Color(0xF2FFFFFF),
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+      border: Border.all(color: const Color(0xFFD7F3E3)),
     ),
     child: Row(
       children: [
-        Icon(icon, color: const Color(0xFF6CF8BB)),
+        Icon(icon, color: const Color(0xFF0F5132)),
         const SizedBox(width: 12),
         Expanded(
-          child: Text(message, style: const TextStyle(color: Colors.white70)),
+          child: Text(
+            message,
+            style: const TextStyle(color: Color(0xFF64748B)),
+          ),
         ),
       ],
     ),
