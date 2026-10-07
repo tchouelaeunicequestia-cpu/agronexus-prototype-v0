@@ -177,6 +177,19 @@ Dashboard quote queues:
 - **Access**: Authenticated users
 - **Description**: Server-Sent Events (SSE) stream delivering real-time storage environmental threshold breaches and decay risk warnings.
 
+#### Agronomist telemetry and equipment requests
+- `GET /api/v1/telemetry/nodes` — Agronomist role; returns each discovered node's latest telemetry record.
+- `GET /api/v1/telemetry/actuator-commands` — Agronomist role; lists saved equipment requests, newest first.
+- `POST /api/v1/telemetry/nodes/{nodeId}/commands` — Agronomist role; saves a pending request only. It does not contact or switch hardware.
+
+```json
+{
+  "action": "AERATION_START"
+}
+```
+
+Supported actions are `AERATION_START` and `UV_DECONTAMINATION`. A successful request returns `201 Created` with `status: "PENDING_DEVICE"` and a creation timestamp. Unknown nodes return `404`; unsupported actions return `400`.
+
 ---
 
 ### 🤖 2.6 Domain-Guarded AI Assistant (`AgroAIController.java`)
@@ -195,7 +208,18 @@ Dashboard quote queues:
 
 ---
 
-### 👤 2.7 Admin & Self-Service User Management (`AdminController.java`, `AuthController.java`)
+### 🌾 2.7 Agronomist guides (`AgronomistController.java`)
+
+All routes require an authenticated Agronomist role.
+
+- `GET /api/v1/agronomist/metrics` — returns counts derived from telemetry records and distinct node IDs. No placeholder metrics are supplied.
+- `GET /api/v1/agronomist/guides` — lists saved guides and their `DRAFT`/`PUBLISHED` status.
+- `POST /api/v1/agronomist/guides` — creates a draft from `title`, `sourceAgency`, `category`, and `content`. The server always stores a new guide as `DRAFT`.
+- `POST /api/v1/agronomist/guides/{guideId}/publish` — publishes an existing guide; returns `404` when the guide does not exist.
+
+The AI query endpoint searches only published guides using keyword matching. It returns `groundingMode: "PUBLISHED_GUIDE_KEYWORD_MATCH"` and guide titles/agencies as citations when there is a match, or `status: "NO_SOURCE"` when there is not. Vector embeddings and generated answers are not implemented.
+
+### 👤 2.8 Admin & Self-Service User Management (`AdminController.java`, `AuthController.java`)
 
 #### `GET /api/v1/admin/users`
 - **Access**: `ADMIN`

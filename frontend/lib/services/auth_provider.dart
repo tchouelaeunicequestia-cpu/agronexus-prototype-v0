@@ -33,6 +33,9 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return;
     }
+    ApiService.markSessionChanged();
+    ApiService.globalAccessToken = accessToken;
+    ApiService.globalRefreshToken = await _storageService.getRefreshToken();
 
     try {
       // Enforce biometric check on session restoration
@@ -63,7 +66,6 @@ class AuthProvider extends ChangeNotifier {
           profile['userId']?.toString() ?? await _storageService.getUserId();
 
       _isAuthenticated = true;
-      ApiService.globalAccessToken = accessToken;
       ApiService.globalUserId = int.tryParse(id ?? '');
       _currentUser = UserProfile(
         id: id,
@@ -79,6 +81,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> login(Map<String, dynamic> authData) async {
+    ApiService.markSessionChanged();
     _isAuthenticated = true;
     ApiService.globalAccessToken = authData['accessToken']?.toString();
     ApiService.globalRefreshToken = authData['refreshToken']?.toString();
@@ -124,6 +127,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    ApiService.markSessionChanged();
     _isAuthenticated = false;
     _role = null;
     _currentUser = null;

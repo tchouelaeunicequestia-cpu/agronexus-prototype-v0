@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/services/auth_provider.dart';
+
 import 'dart:ui';
 import 'dart:async';
 
@@ -8,7 +9,8 @@ class TransporterHandoverScreen extends StatefulWidget {
   const TransporterHandoverScreen({super.key});
 
   @override
-  State<TransporterHandoverScreen> createState() => _TransporterHandoverScreenState();
+  State<TransporterHandoverScreen> createState() =>
+      _TransporterHandoverScreenState();
 }
 
 class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
@@ -22,7 +24,10 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
   static const _onSurface = Color(0xFFdae2fd);
   static const _onSurfaceVariant = Color(0xFFbbcabf);
 
-  final List<TextEditingController> _otpControllers = List.generate(4, (_) => TextEditingController());
+  final List<TextEditingController> _otpControllers = List.generate(
+    4,
+    (_) => TextEditingController(),
+  );
   final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
   bool _isReleasing = false;
   bool _isSettled = false;
@@ -37,8 +42,12 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
 
   @override
   void dispose() {
-    for (var c in _otpControllers) { c.dispose(); }
-    for (var n in _focusNodes) { n.dispose(); }
+    for (var c in _otpControllers) {
+      c.dispose();
+    }
+    for (var n in _focusNodes) {
+      n.dispose();
+    }
     super.dispose();
   }
 
@@ -120,7 +129,11 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
                 children: [
                   Text(
                     'Handover',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _onSurface),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: _onSurface,
+                    ),
                   ),
                 ],
               ),
@@ -128,15 +141,26 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
                 children: [
                   Text(
                     user?.name ?? 'UNIT-740X',
-                    style: const TextStyle(fontSize: 11, color: _onSurfaceVariant, fontFamily: 'Inter'),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: _onSurfaceVariant,
+                      fontFamily: 'Inter',
+                    ),
                   ),
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 4),
-                    child: Text('•', style: TextStyle(fontSize: 10, color: Colors.white30)),
+                    child: Text(
+                      '•',
+                      style: TextStyle(fontSize: 10, color: Colors.white30),
+                    ),
                   ),
                   const Text(
                     '42T SEMI',
-                    style: TextStyle(fontSize: 11, color: _primary, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: _primary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
@@ -156,7 +180,14 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
             children: [
               Icon(Icons.circle, color: _primary, size: 8),
               SizedBox(width: 4),
-              Text('ONLINE', style: TextStyle(color: _primary, fontSize: 11, fontWeight: FontWeight.bold)),
+              Text(
+                'ONLINE',
+                style: TextStyle(
+                  color: _primary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
         ),
@@ -174,7 +205,13 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
       decoration: BoxDecoration(
         color: _surfaceContainerHigh.withOpacity(0.9),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -187,24 +224,56 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(color: _primary.withOpacity(0.15), borderRadius: BorderRadius.circular(20)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _primary.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                       child: const Row(
                         children: [
                           Icon(Icons.circle, color: _primary, size: 6),
                           SizedBox(width: 6),
-                          Text('ESCROW SECURE ENCLAVE', style: TextStyle(color: _primary, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                          Text(
+                            'ESCROW SECURE ENCLAVE',
+                            style: TextStyle(
+                              color: _primary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
                         ],
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Text('#WB-2026-098214', style: TextStyle(color: _onSurfaceVariant, fontSize: 11, fontWeight: FontWeight.w500)),
+                    const Text(
+                      '#WB-2026-098214',
+                      style: TextStyle(
+                        color: _onSurfaceVariant,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                const Text('Dual-Key Delivery Handover Terminal', style: TextStyle(color: _onSurface, fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: -0.5)),
+                const Text(
+                  'Dual-Key Delivery Handover Terminal',
+                  style: TextStyle(
+                    color: _onSurface,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.5,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                const Text('Cryptographic escrow settlement protocol ISO-20022 compliant', style: TextStyle(color: _onSurfaceVariant, fontSize: 12)),
+                const Text(
+                  'Cryptographic escrow settlement protocol ISO-20022 compliant',
+                  style: TextStyle(color: _onSurfaceVariant, fontSize: 12),
+                ),
               ],
             ),
           ),
@@ -228,7 +297,13 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
       decoration: BoxDecoration(
         color: _surfaceContainerLow,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -240,17 +315,42 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
                   Container(
                     width: 24,
                     height: 24,
-                    decoration: BoxDecoration(color: const Color(0xFF10b981), borderRadius: BorderRadius.circular(12)),
-                    child: const Icon(Icons.check, color: Color(0xFF00422b), size: 16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10b981),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.check,
+                      color: Color(0xFF00422b),
+                      size: 16,
+                    ),
                   ),
                   const SizedBox(width: 8),
-                  const Text('Stage 1: Farm Gate Dispatch', style: TextStyle(color: _onSurface, fontSize: 14, fontWeight: FontWeight.w600)),
+                  const Text(
+                    'Stage 1: Farm Gate Dispatch',
+                    style: TextStyle(
+                      color: _onSurface,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: _primary.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
-                child: const Text('VERIFIED', style: TextStyle(color: _primary, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                decoration: BoxDecoration(
+                  color: _primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  'VERIFIED',
+                  style: TextStyle(
+                    color: _primary,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
               ),
             ],
           ),
@@ -260,15 +360,37 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: _surfaceContainer, borderRadius: BorderRadius.circular(12)),
+                  decoration: BoxDecoration(
+                    color: _surfaceContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Origin Producer Signature', style: TextStyle(color: _onSurfaceVariant, fontSize: 11)),
+                      Text(
+                        'Origin Producer Signature',
+                        style: TextStyle(
+                          color: _onSurfaceVariant,
+                          fontSize: 11,
+                        ),
+                      ),
                       SizedBox(height: 4),
-                      Text('Eunice Françoise', style: TextStyle(color: _onSurface, fontSize: 12, fontWeight: FontWeight.w600)),
+                      Text(
+                        'Eunice Françoise',
+                        style: TextStyle(
+                          color: _onSurface,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                       SizedBox(height: 2),
-                      Text('07:30 UTC • Gate #04', style: TextStyle(color: _onSurfaceVariant, fontSize: 11)),
+                      Text(
+                        '07:30 UTC • Gate #04',
+                        style: TextStyle(
+                          color: _onSurfaceVariant,
+                          fontSize: 11,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -277,11 +399,20 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: _surfaceContainer, borderRadius: BorderRadius.circular(12)),
+                  decoration: BoxDecoration(
+                    color: _surfaceContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Producer Auth Key', style: TextStyle(color: _onSurfaceVariant, fontSize: 11)),
+                      const Text(
+                        'Producer Auth Key',
+                        style: TextStyle(
+                          color: _onSurfaceVariant,
+                          fontSize: 11,
+                        ),
+                      ),
                       const SizedBox(height: 4),
                       Row(
                         children: [
@@ -294,9 +425,19 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
                       const SizedBox(height: 2),
                       const Row(
                         children: [
-                          Icon(Icons.my_location, color: Color(0xFF68fcbf), size: 12),
+                          Icon(
+                            Icons.my_location,
+                            color: Color(0xFF68fcbf),
+                            size: 12,
+                          ),
                           SizedBox(width: 4),
-                          Text('GPS ±1m Lock', style: TextStyle(color: Color(0xFF68fcbf), fontSize: 11)),
+                          Text(
+                            'GPS ±1m Lock',
+                            style: TextStyle(
+                              color: Color(0xFF68fcbf),
+                              fontSize: 11,
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -314,8 +455,19 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
     return Container(
       margin: const EdgeInsets.only(right: 4),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(color: const Color(0xFF2d3449), borderRadius: BorderRadius.circular(4)),
-      child: Text(val, style: const TextStyle(color: _primary, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 2)),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2d3449),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        val,
+        style: const TextStyle(
+          color: _primary,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 2,
+        ),
+      ),
     );
   }
 
@@ -325,7 +477,13 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
       decoration: BoxDecoration(
         color: _surfaceContainer,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -340,9 +498,24 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
               children: [
                 Row(
                   children: [
-                    Container(width: 8, height: 8, decoration: const BoxDecoration(color: _tertiary, shape: BoxShape.circle)),
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: _tertiary,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
                     const SizedBox(width: 8),
-                    const Text('STAGE 2: BUYER OTP AUTHORIZATION', style: TextStyle(color: _tertiary, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                    const Text(
+                      'STAGE 2: BUYER OTP AUTHORIZATION',
+                      style: TextStyle(
+                        color: _tertiary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
                   ],
                 ),
                 const Icon(Icons.pin, color: _tertiary, size: 20),
@@ -359,9 +532,22 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Destination Terminal', style: TextStyle(color: _onSurfaceVariant, fontSize: 11)),
-                    const Text('Bastos Wholesale Depot', style: TextStyle(color: _onSurface, fontSize: 16, fontWeight: FontWeight.w600)),
-                    const Text('Zone 3C, Yaoundé, Centre Region', style: TextStyle(color: _onSurfaceVariant, fontSize: 12)),
+                    const Text(
+                      'Destination Terminal',
+                      style: TextStyle(color: _onSurfaceVariant, fontSize: 11),
+                    ),
+                    const Text(
+                      'Bastos Wholesale Depot',
+                      style: TextStyle(
+                        color: _onSurface,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const Text(
+                      'Zone 3C, Yaoundé, Centre Region',
+                      style: TextStyle(color: _onSurfaceVariant, fontSize: 12),
+                    ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
@@ -371,19 +557,41 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Designated Signer', style: TextStyle(color: _onSurfaceVariant, fontSize: 11)),
-                              const Text('Marcelle Nana (Depot Manager)', style: TextStyle(color: _onSurface, fontSize: 14, fontWeight: FontWeight.w500)),
+                              const Text(
+                                'Designated Signer',
+                                style: TextStyle(
+                                  color: _onSurfaceVariant,
+                                  fontSize: 11,
+                                ),
+                              ),
+                              const Text(
+                                'Marcelle Nana (Depot Manager)',
+                                style: TextStyle(
+                                  color: _onSurface,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                             ],
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(color: _surfaceContainerHigh, borderRadius: BorderRadius.circular(20)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _surfaceContainerHigh,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
                           child: const Row(
                             children: [
                               Icon(Icons.call, color: _primary, size: 16),
                               SizedBox(width: 4),
-                              Text('Contact', style: TextStyle(color: _primary, fontSize: 11)),
+                              Text(
+                                'Contact',
+                                style: TextStyle(color: _primary, fontSize: 11),
+                              ),
                             ],
                           ),
                         ),
@@ -403,14 +611,27 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
             ),
             child: Column(
               children: [
-                const Text('Receiver Dual-Key Code', style: TextStyle(color: _onSurface, fontSize: 12, fontWeight: FontWeight.w600)),
+                const Text(
+                  'Receiver Dual-Key Code',
+                  style: TextStyle(
+                    color: _onSurface,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 const Text.rich(
                   TextSpan(
                     text: 'Ask Marcelle Nana for the 4-digit token dispatched to her SMS terminal (',
                     style: TextStyle(color: _onSurfaceVariant, fontSize: 12),
                     children: [
-                      TextSpan(text: '+237 694•••250', style: TextStyle(color: _onSurface, fontWeight: FontWeight.w500)),
+                      TextSpan(
+                        text: '+237 694•••250',
+                        style: TextStyle(
+                          color: _onSurface,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                       TextSpan(text: ')'),
                     ],
                   ),
@@ -427,7 +648,13 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
                       decoration: BoxDecoration(
                         color: _surfaceContainerHigh,
                         borderRadius: BorderRadius.circular(12),
-                        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, inset: true)],
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 4,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: TextField(
                         controller: _otpControllers[index],
@@ -435,12 +662,18 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
                         keyboardType: TextInputType.number,
                         textAlign: TextAlign.center,
                         maxLength: 1,
-                        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: _primary),
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: _primary,
+                        ),
                         decoration: InputDecoration(
                           counterText: '',
                           border: InputBorder.none,
                           hintText: index == 3 ? '•' : '',
-                          hintStyle: TextStyle(color: _onSurfaceVariant.withOpacity(0.4)),
+                          hintStyle: TextStyle(
+                            color: _onSurfaceVariant.withOpacity(0.4),
+                          ),
                         ),
                         onChanged: (value) => _onOtpChanged(value, index),
                       ),
@@ -452,13 +685,25 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: () {},
-                    icon: const Icon(Icons.qr_code_scanner, color: _tertiary, size: 20),
-                    label: const Text('Or Scan Buyer Handover QR', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                    icon: const Icon(
+                      Icons.qr_code_scanner,
+                      color: _tertiary,
+                      size: 20,
+                    ),
+                    label: const Text(
+                      'Or Scan Buyer Handover QR',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _surfaceContainerHigh,
                       foregroundColor: _onSurface,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       elevation: 0,
                     ),
                   ),
@@ -477,23 +722,52 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
       decoration: BoxDecoration(
         color: _surfaceContainer,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         children: [
           const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Transporter Verification Gate', style: TextStyle(color: _onSurface, fontSize: 14, fontWeight: FontWeight.w600)),
-              Text('3 of 3 Confirmed', style: TextStyle(color: _primary, fontSize: 11, fontWeight: FontWeight.bold)),
+              Text(
+                'Transporter Verification Gate',
+                style: TextStyle(
+                  color: _onSurface,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                '3 of 3 Confirmed',
+                style: TextStyle(
+                  color: _primary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
-          _buildChecklistItem('Produce temperature within standard range', 'Telemetric probe: 4.3°C (Target: 3.5°C - 5.5°C)'),
+          _buildChecklistItem(
+            'Produce temperature within standard range',
+            'Telemetric probe: 4.3°C (Target: 3.5°C - 5.5°C)',
+          ),
           const SizedBox(height: 8),
-          _buildChecklistItem('Crates & cargo security seals intact', 'Digital tamper-tag #TAG-982 matched & sealed'),
+          _buildChecklistItem(
+            'Crates & cargo security seals intact',
+            'Digital tamper-tag #TAG-982 matched & sealed',
+          ),
           const SizedBox(height: 8),
-          _buildChecklistItem('Tare deduction & certified weighbridge', '12,480 kg Net Weight acknowledged by depot'),
+          _buildChecklistItem(
+            'Tare deduction & certified weighbridge',
+            '12,480 kg Net Weight acknowledged by depot',
+          ),
         ],
       ),
     );
@@ -512,7 +786,10 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
           Container(
             width: 20,
             height: 20,
-            decoration: BoxDecoration(color: _primary, borderRadius: BorderRadius.circular(4)),
+            decoration: BoxDecoration(
+              color: _primary,
+              borderRadius: BorderRadius.circular(4),
+            ),
             child: const Icon(Icons.check, color: Color(0xFF003824), size: 16),
           ),
           const SizedBox(width: 12),
@@ -520,9 +797,22 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(color: _onSurface, fontSize: 12, fontWeight: FontWeight.w500)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: _onSurface,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(subtitle, style: const TextStyle(color: _onSurfaceVariant, fontSize: 11)),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: _onSurfaceVariant,
+                    fontSize: 11,
+                  ),
+                ),
               ],
             ),
           ),
@@ -537,7 +827,13 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
       decoration: BoxDecoration(
         color: _surfaceContainerHigh.withOpacity(0.9),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -546,12 +842,30 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
             children: [
               const Row(
                 children: [
-                  Icon(Icons.account_balance_wallet, color: _tertiary, size: 20),
+                  Icon(
+                    Icons.account_balance_wallet,
+                    color: _tertiary,
+                    size: 20,
+                  ),
                   SizedBox(width: 8),
-                  Text('Escrow Disbursement Direct-Sweep', style: TextStyle(color: _onSurface, fontSize: 14, fontWeight: FontWeight.w600)),
+                  Text(
+                    'Escrow Disbursement Direct-Sweep',
+                    style: TextStyle(
+                      color: _onSurface,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
-              Text('INSTANT SETTLE', style: TextStyle(color: _secondary, fontSize: 11, fontWeight: FontWeight.bold)),
+              Text(
+                'INSTANT SETTLE',
+                style: TextStyle(
+                  color: _secondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -560,16 +874,36 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
           const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Transporter Freight Fee', style: TextStyle(color: _onSurfaceVariant, fontSize: 12)),
-              Text('185,000 FCFA', style: TextStyle(color: _onSurface, fontSize: 14, fontWeight: FontWeight.w500)),
+              Text(
+                'Transporter Freight Fee',
+                style: TextStyle(color: _onSurfaceVariant, fontSize: 12),
+              ),
+              Text(
+                '185,000 FCFA',
+                style: TextStyle(
+                  color: _onSurface,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
           const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('AgroNexus Platform Fee', style: TextStyle(color: _onSurfaceVariant, fontSize: 12)),
-              Text('0 FCFA (Escrow Covered)', style: TextStyle(color: _primary, fontSize: 12, fontWeight: FontWeight.w500)),
+              Text(
+                'AgroNexus Platform Fee',
+                style: TextStyle(color: _onSurfaceVariant, fontSize: 12),
+              ),
+              Text(
+                '0 FCFA (Escrow Covered)',
+                style: TextStyle(
+                  color: _primary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -579,17 +913,42 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
               const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Net Instant Payout', style: TextStyle(color: _onSurface, fontSize: 14, fontWeight: FontWeight.bold)),
-                  Text('MTN MoMo (+237 677•••881)', style: TextStyle(color: _onSurfaceVariant, fontSize: 12)),
+                  Text(
+                    'Net Instant Payout',
+                    style: TextStyle(
+                      color: _onSurface,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    'MTN MoMo (+237 677•••881)',
+                    style: TextStyle(color: _onSurfaceVariant, fontSize: 12),
+                  ),
                 ],
               ),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.baseline,
                 textBaseline: TextBaseline.alphabetic,
                 children: [
-                  Text('185,000', style: TextStyle(color: _primary, fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: -1)),
+                  Text(
+                    '185,000',
+                    style: TextStyle(
+                      color: _primary,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -1,
+                    ),
+                  ),
                   const SizedBox(width: 4),
-                  const Text('FCFA', style: TextStyle(color: _primary, fontSize: 11, fontWeight: FontWeight.w600)),
+                  const Text(
+                    'FCFA',
+                    style: TextStyle(
+                      color: _primary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -607,17 +966,32 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
           child: ElevatedButton.icon(
             onPressed: _isSettled || _isReleasing ? null : _handleReleaseEscrow,
             icon: _isReleasing
-                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Color(0xFF003824), strokeWidth: 2))
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      color: Color(0xFF003824),
+                      strokeWidth: 2,
+                    ),
+                  )
                 : Icon(_isSettled ? Icons.verified : Icons.lock_open, size: 24),
             label: Text(
-              _isReleasing ? 'Clearing Multi-Sig Escrow...' : (_isSettled ? '185,000 FCFA Disbursed!' : 'Verify OTP & Release Escrow'),
+              _isReleasing
+                  ? 'Clearing Multi-Sig Escrow...'
+                  : (_isSettled
+                        ? '185,000 FCFA Disbursed!'
+                        : 'Verify OTP & Release Escrow'),
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: _isSettled ? const Color(0xFF00bd85) : _primary,
-              foregroundColor: _isSettled ? Colors.white : const Color(0xFF003824),
+              foregroundColor: _isSettled
+                  ? Colors.white
+                  : const Color(0xFF003824),
               padding: const EdgeInsets.symmetric(vertical: 20),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               elevation: 4,
               disabledBackgroundColor: _primary.withOpacity(0.5),
             ),
@@ -629,7 +1003,10 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
           children: [
             Icon(Icons.gavel, color: _primary, size: 14),
             SizedBox(width: 6),
-            Text('Dual cryptographic keys unlock instantaneous escrow clearance', style: TextStyle(color: _onSurfaceVariant, fontSize: 11)),
+            Text(
+              'Dual cryptographic keys unlock instantaneous escrow clearance',
+              style: TextStyle(color: _onSurfaceVariant, fontSize: 11),
+            ),
           ],
         ),
       ],

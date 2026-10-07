@@ -1,79 +1,20 @@
-# Domain-Guarded RAG AI Pipeline — AgroNexus
+# AgroNexus Agronomist Guide Retrieval
 
-This document specifies the Retrieval-Augmented Generation (RAG) artificial intelligence pipeline, vector database indexing, domain guardrail filtering, prompt synthesis rules, and citation enforcement for **AgroNexus**.
+## Current behavior
 
----
+`POST /api/v1/ai/query` applies an agricultural-domain keyword guard and searches the database for published Agronomist guides. Retrieval is lexical keyword matching over guide title, category, and content. Matching guide text is returned verbatim with its title and source agency; no language model generates or expands the answer.
 
-## 1. RAG AI Execution Pipeline Architecture
+The response reports `groundingMode: "PUBLISHED_GUIDE_KEYWORD_MATCH"`. Out-of-domain questions are rejected. In-domain questions with no matching published guide return `status: "NO_SOURCE"` rather than fabricated advice.
 
-```
-[ User Input Query ]
-         |
-         v
-+-------------------------------------------------------------+
-|               1. DOMAIN GUARDRAIL ENGINE                    |
-| Evaluates query intent against agricultural ontology taxonomy |
-+-------------------------------------------------------------+
-         |
-         +--------------------------+
-         | (Out-of-Scope Prompt)     | (In-Scope Agricultural Query)
-         v                          v
-[ Reject Query Response ]   +---------------------------------+
-"I am an agricultural       | 2. pgvector VECTOR SEARCH       |
- assistant. Please ask      | HNSW Cosine Distance (Top-k = 3)|
- agricultural queries."     +---------------------------------+
-                                    |
-                                    v
-                            +---------------------------------+
-                            | 3. CONTEXT & PROMPT INJECTION   |
-                            | System instruction + Grounded   |
-                            | FAO/USDA knowledge chunks       |
-                            +---------------------------------+
-                                    |
-                                    v
-                            +---------------------------------+
-                            | 4. LLM ADVISORY INFERENCE       |
-                            | Grounded advisory + Citations   |
-                            +---------------------------------+
-```
+Agronomists create guides as drafts and explicitly publish them. Only published guide content is eligible for AgroAI retrieval. Source-agency metadata is displayed with guide citations; publication does not independently verify that a guide is authoritative.
 
----
+## Current limitations
 
-## 2. Ingestion & Vector Indexing Strategy
+- There is no configured embedding model, vector column/index, pgvector dependency, semantic search, or LLM inference integration.
+- Keyword matching can miss relevant guidance when a query and guide use different vocabulary, and may return text that shares terms without answering the question.
+- The returned text is source-attributed guide content, not an independently verified or generated recommendation. Users should consult the cited source and qualified experts for safety-critical decisions.
+- No precision, latency, or hallucination benchmark has been collected for this implementation.
 
-1. **Authoritative Corpus**:
-   - Food and Agriculture Organization (FAO) post-harvest handling guidelines.
-   - United States Department of Agriculture (USDA) handbook No. 66 (Crop Storage Management).
-   - United Nations Economic Commission for Europe (UNECE) fresh produce standards.
+## Future vector-search work
 
-2. **Chunking & Embeddings**:
-   - Text segmentation: 512-token chunks with 64-token overlap.
-   - Embedding Model: 1536-dimensional vector representation (`vector(1536)`).
-   - Database Storage: Stored in `knowledge_embeddings` table in PostgreSQL.
-   - Index Structure: HNSW (Hierarchical Navigable Small World) cosine index (`USING hnsw (embedding vector_cosine_ops)`).
-
----
-
-## 3. Domain Guardrail System Prompt Template
-
-```markdown
-SYSTEM INSTRUCTION:
-You are AgroNexus AI, an expert agricultural advisory assistant specializing in crop management, post-harvest preservation, disease diagnosis, and market standards across sub-Saharan Africa.
-
-STRICT DOMAIN GUARDRAIL RULES:
-1. Rejection Criteria: If the user query is unrelated to agriculture, farming, crop storage, pest management, produce market prices, or logistics, immediately decline with:
-   "I am an specialized agricultural advisory assistant. I can only assist with farming, post-harvest storage, crop protection, and agricultural logistics questions."
-2. Grounding Rule: Base your answers ONLY on the provided context retrieved from FAO, USDA, and UNECE standards. Do NOT speculate or generate unverified advice.
-3. Citation Requirement: Always include explicit inline citations [FAO/USDA/UNECE] referencing the source document for any storage temperature, humidity threshold, or chemical application guidelines.
-```
-
----
-
-## 4. Empirical Evaluation & Accuracy Results
-
-| Metric | Result | Target Benchmark |
-| :--- | :---: | :---: |
-| **In-Domain Agricultural Advisory Accuracy** | **96.4%** | $> 95\%$ |
-| **Out-of-Domain Guardrail Interception Rate** | **99.2%** | $> 98\%$ |
-| **Hallucination Rate** (vs 18.5% baseline) | **< 1.2%** | $< 2.0\%$ |
-| **Cosine Search Latency (pgvector HNSW)** | **14 ms** | $< 50\text{ ms}$ |
+Before introducing semantic retrieval, select and configure an embedding provider, define model/version and vector dimensions, add a managed schema migration and vector index, and establish ingestion, re-embedding, provenance, evaluation, and failure-handling procedures. Keep lexical retrieval clearly identified until those components are deployed and measured.

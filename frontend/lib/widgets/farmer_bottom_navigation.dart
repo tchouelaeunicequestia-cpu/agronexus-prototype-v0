@@ -15,57 +15,27 @@ class FarmerBottomNavigation extends StatelessWidget {
     return SafeArea(
       top: false,
       child: Container(
-        height: 70,
+        height: 64,
         decoration: BoxDecoration(
-          color: const Color(0xF2FFFFFF),
-          border: const Border(top: BorderSide(color: Color(0xFFD7F3E3))),
+          color: Colors.white.withValues(alpha: 0.96),
+          border: const Border(top: BorderSide(color: Color(0xFFE2E8F0))),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.28),
-              blurRadius: 14,
-              offset: const Offset(0, -5),
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, -4),
             ),
           ],
         ),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _item(0, Icons.dashboard_outlined, 'Dashboard'),
-            _item(1, Icons.inventory_2_outlined, 'Batches'),
-            Expanded(
-              child: InkWell(
-                onTap: () => onDestinationSelected(2),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF059669),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF059669)
-                                .withValues(alpha: 0.3),
-                            blurRadius: 12,
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.add_rounded,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(height: 1),
-                    _label('List Crop', selectedIndex == 2),
-                  ],
-                ),
-              ),
-            ),
-            _item(3, Icons.verified_user_outlined, 'Escrow'),
-            _item(4, Icons.sensors_outlined, 'IoT Silos'),
-            _item(5, Icons.person_outline_rounded, 'Profile'),
+            _item(0, Icons.dashboard_rounded, 'Dashboard'),
+            _item(1, Icons.inventory_2_rounded, 'Batches'),
+            _item(2, Icons.add_rounded, 'List Crop'),
+            _item(3, Icons.verified_user_rounded, 'Escrow'),
+            _item(4, Icons.sensors_rounded, 'IoT Silos'),
+            _item(5, Icons.person_rounded, 'Profile'),
           ],
         ),
       ),
@@ -75,21 +45,36 @@ class FarmerBottomNavigation extends StatelessWidget {
   Widget _item(int index, IconData icon, String label) {
     final selected = selectedIndex == index;
     return Expanded(
-      child: InkWell(
-        onTap: () => onDestinationSelected(index),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: selected
-                  ? const Color(0xFF0F5132)
-                  : const Color(0xFF64748B),
-              size: 20,
-            ),
-            const SizedBox(height: 3),
-            _label(label, selected),
-          ],
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => onDestinationSelected(index),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? const Color(0xFFEFFAF3)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  icon,
+                  color: selected
+                      ? const Color(0xFF0F5132)
+                      : const Color(0xFF64748B),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(height: 2),
+              _label(label, selected),
+            ],
+          ),
         ),
       ),
     );
@@ -99,10 +84,11 @@ class FarmerBottomNavigation extends StatelessWidget {
     label,
     maxLines: 1,
     overflow: TextOverflow.ellipsis,
+    textAlign: TextAlign.center,
     style: TextStyle(
       color: selected ? const Color(0xFF0F5132) : const Color(0xFF64748B),
-      fontSize: 9,
-      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+      fontSize: 10,
+      fontWeight: selected ? FontWeight.bold : FontWeight.w500,
     ),
   );
 }

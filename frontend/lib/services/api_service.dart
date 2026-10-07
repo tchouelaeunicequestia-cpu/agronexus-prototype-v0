@@ -8,6 +8,13 @@ import 'package:image_picker/image_picker.dart';
 import 'api_constants.dart' as api_constants;
 import 'secure_storage_service.dart';
 
+class SessionExpiredException implements Exception {
+  const SessionExpiredException();
+
+  @override
+  String toString() => 'Your session has expired. Please sign in again.';
+}
+
 class ApiService {
   static String get baseUrl => api_constants.baseUrl;
 
@@ -15,7 +22,13 @@ class ApiService {
   static String? globalAccessToken;
   static String? globalRefreshToken;
   static int? globalUserId;
+  static Future<bool>? _refreshOperation;
+  static int _sessionVersion = 0;
   static final SecureStorageService _storage = SecureStorageService();
+
+  static void markSessionChanged() {
+    _sessionVersion++;
+  }
 
   /// Authenticate user credentials
   static Future<Map<String, dynamic>> login({
@@ -218,23 +231,39 @@ class ApiService {
       if (activeToken != null) 'Authorization': 'Bearer $activeToken',
     };
 
-    if (method == 'POST') {
-      return await http.post(
-        uri,
-        headers: headers,
-        body: body != null ? jsonEncode(body) : null,
-      );
-    } else if (method == 'DELETE') {
-      return await http.delete(uri, headers: headers);
-    } else if (method == 'PUT') {
-      return await http.put(
-        uri,
-        headers: headers,
-        body: body != null ? jsonEncode(body) : null,
-      );
-    } else {
-      return await http.get(uri, headers: headers);
+    Future<http.Response> send(Map<String, String> requestHeaders) {
+      final requestBody = body == null ? null : jsonEncode(body);
+      switch (method) {
+        case 'POST':
+          return http.post(uri, headers: requestHeaders, body: requestBody);
+        case 'PUT':
+          return http.put(uri, headers: requestHeaders, body: requestBody);
+        case 'PATCH':
+          return http.patch(uri, headers: requestHeaders, body: requestBody);
+        case 'DELETE':
+          return http.delete(uri, headers: requestHeaders);
+        default:
+          return http.get(uri, headers: requestHeaders);
+      }
     }
+
+    final response = await send(headers);
+    if (response.statusCode != 401) return response;
+    final tokenWasRefreshed =
+        activeToken != null &&
+        globalAccessToken != null &&
+        activeToken != globalAccessToken;
+    if (!tokenWasRefreshed && !await refreshAccessToken()) {
+      throw const SessionExpiredException();
+    }
+
+    final refreshedToken = globalAccessToken ?? await _storage.getAccessToken();
+    if (refreshedToken == null || refreshedToken.isEmpty) {
+      throw const SessionExpiredException();
+    }
+    final retryHeaders = Map<String, String>.from(headers)
+      ..['Authorization'] = 'Bearer $refreshedToken';
+    return send(retryHeaders);
   }
 
   /// Opens the agronomist's live stream of threshold-breach telemetry alerts.
@@ -278,54 +307,124 @@ class ApiService {
     }
   }
 
-  /// Refresh token handler
-  static Future<bool> refreshAccessToken() async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/api/v1/auth/refresh'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'refreshToken': globalRefreshToken}),
+  /// Refreshes and rotates the backend refresh token once for concurrent 401s.
+  static Future<bool> refreshAccessToken() {
+    final pending = _refreshOperation;
+    if (pending != null) return pending;
+
+    final operation = _performTokenRefresh();
+    _refreshOperation = operation;
+    return operation.whenComplete(() {
+      if (identical(_refreshOperation, operation)) _refreshOperation = null;
+    });
+  }
+
+  static Future<bool> _performTokenRefresh() async {
+    final sessionVersion = _sessionVersion;
+    globalRefreshToken ??= await _storage.getRefreshToken();
+    if (globalRefreshToken == null || globalRefreshToken!.isEmpty) {
+      return false;
+    }
+    final requestRefreshToken = globalRefreshToken!;
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/api/v1/auth/refresh'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'refreshToken': requestRefreshToken}),
+    );
+    if (response.statusCode == 401 ||
+        response.statusCode == 403 ||
+        response.statusCode == 400) {
+      return false;
+    }
+    if (response.statusCode != 200) {
+      throw Exception('Token refresh failed (HTTP ${response.statusCode}).');
+    }
+
+    final data = _decodeJsonObject(response.body);
+    final accessToken = data?['accessToken']?.toString();
+    final refreshToken = data?['refreshToken']?.toString();
+    if (accessToken == null ||
+        accessToken.isEmpty ||
+        refreshToken == null ||
+        refreshToken.isEmpty) {
+      throw const FormatException(
+        'Token refresh endpoint returned an invalid response.',
       );
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        globalAccessToken = data['accessToken'];
-        await _storage.saveSession(
-          accessToken: data['accessToken']?.toString() ?? '',
-          refreshToken:
-              data['refreshToken']?.toString() ??
-              await _storage.getRefreshToken() ??
-              '',
-          role: await _storage.getUserRole() ?? 'BUYER',
-          userId: await _storage.getUserId(),
-          name: await _storage.getUserName(),
-          email: await _storage.getUserEmail(),
-        );
-        globalRefreshToken =
-            data['refreshToken']?.toString() ??
-            await _storage.getRefreshToken();
-        return true;
-      }
-    } catch (_) {}
-    return false;
+    }
+    if (sessionVersion != _sessionVersion) return false;
+
+    globalAccessToken = accessToken;
+    globalRefreshToken = refreshToken;
+    await _storage.saveSession(
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+      role: await _storage.getUserRole() ?? 'BUYER',
+      userId: await _storage.getUserId(),
+      name: await _storage.getUserName(),
+      email: await _storage.getUserEmail(),
+    );
+    return true;
   }
 
   /// Fetches real-time escrow, yield, and IoT silo metrics for the logged-in farmer
   static Future<Map<String, dynamic>> getFarmerDashboardMetrics() async {
     final response = await authenticatedRequest('/api/v1/farmers/me/dashboard');
     if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+      try {
+        final payload = jsonDecode(response.body);
+        if (payload is Map<String, dynamic>) return payload;
+      } on FormatException {
+        throw Exception(
+          'Farmer dashboard endpoint returned invalid JSON. Check the backend response.',
+        );
+      }
+      throw Exception(
+        'Farmer dashboard endpoint returned an unexpected response.',
+      );
     }
-    throw Exception('Unable to load your farmer dashboard.');
+    final errorBody = _decodeJsonObject(response.body);
+    final detail =
+        errorBody?['error']?.toString() ?? errorBody?['message']?.toString();
+    throw Exception(
+      detail != null && detail.isNotEmpty
+          ? '$detail (HTTP ${response.statusCode})'
+          : 'Unable to load your farmer dashboard (HTTP ${response.statusCode}).',
+    );
   }
 
   /// Fetches the product listings created by the logged-in farmer
   static Future<List<Map<String, dynamic>>> getFarmerProducts() async {
     final response = await authenticatedRequest('/api/v1/products/mine');
     if (response.statusCode == 200) {
-      final List<dynamic> list = jsonDecode(response.body);
-      return list.map((e) => Map<String, dynamic>.from(e)).toList();
+      try {
+        final payload = jsonDecode(response.body);
+        if (payload is List) {
+          return payload
+              .map((item) => Map<String, dynamic>.from(item as Map))
+              .toList();
+        }
+      } on FormatException {
+        throw Exception(
+          'Farmer listings endpoint returned invalid JSON. Check the backend response.',
+        );
+      } on TypeError {
+        throw Exception(
+          'Farmer listings endpoint returned an unexpected response.',
+        );
+      }
+      throw Exception(
+        'Farmer listings endpoint returned an unexpected response.',
+      );
     }
-    throw Exception('Unable to load your produce listings.');
+    final errorBody = _decodeJsonObject(response.body);
+    final detail =
+        errorBody?['error']?.toString() ?? errorBody?['message']?.toString();
+    throw Exception(
+      detail != null && detail.isNotEmpty
+          ? '$detail (HTTP ${response.statusCode})'
+          : 'Unable to load your produce listings (HTTP ${response.statusCode}).',
+    );
   }
 
   /// Fetches products available to buyers, optionally filtered by proximity radius (km)
@@ -398,6 +497,57 @@ class ApiService {
     throw Exception('Unable to load telemetry for node $normalizedNodeId.');
   }
 
+  static Future<List<Map<String, dynamic>>> getTelemetryNodes() async {
+    final response = await authenticatedRequest('/api/v1/telemetry/nodes');
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+      if (decoded is List) {
+        return decoded
+            .whereType<Map>()
+            .map((entry) => Map<String, dynamic>.from(entry))
+            .toList();
+      }
+    }
+    throw Exception(
+      'Unable to load storage nodes (HTTP ${response.statusCode}).',
+    );
+  }
+
+  static Future<List<Map<String, dynamic>>> getActuatorCommands() async {
+    final response = await authenticatedRequest(
+      '/api/v1/telemetry/actuator-commands',
+    );
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+      if (decoded is List) {
+        return decoded
+            .whereType<Map>()
+            .map((entry) => Map<String, dynamic>.from(entry))
+            .toList();
+      }
+    }
+    throw Exception(
+      'Unable to load actuator requests (HTTP ${response.statusCode}).',
+    );
+  }
+
+  static Future<Map<String, dynamic>> createActuatorCommand({
+    required String nodeId,
+    required String action,
+  }) async {
+    final response = await authenticatedRequest(
+      '/api/v1/telemetry/nodes/${Uri.encodeComponent(nodeId)}/commands',
+      method: 'POST',
+      body: {'action': action},
+    );
+    final payload = _decodeJsonObject(response.body);
+    if (response.statusCode == 201 && payload != null) return payload;
+    throw Exception(
+      payload?['error']?.toString() ??
+          'Unable to queue the actuator request (HTTP ${response.statusCode}).',
+    );
+  }
+
   /// Fetches real-time metrics for the Agronomist dashboard
   static Future<Map<String, dynamic>> getAgronomistMetrics() async {
     final response = await authenticatedRequest('/api/v1/agronomist/metrics');
@@ -408,6 +558,65 @@ class ApiService {
       }
     }
     throw Exception('Unable to load agronomist metrics.');
+  }
+
+  static Future<List<Map<String, dynamic>>> getAgronomistGuides() async {
+    final response = await authenticatedRequest('/api/v1/agronomist/guides');
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+      if (decoded is List) {
+        return decoded
+            .whereType<Map>()
+            .map((entry) => Map<String, dynamic>.from(entry))
+            .toList();
+      }
+    }
+    throw Exception(
+      'Unable to load Agronomist guides (HTTP ${response.statusCode}).',
+    );
+  }
+
+  static Future<Map<String, dynamic>> saveAgronomistGuide({
+    required String title,
+    required String sourceAgency,
+    required String category,
+    required String content,
+  }) async {
+    final response = await authenticatedRequest(
+      '/api/v1/agronomist/guides',
+      method: 'POST',
+      body: {
+        'title': title,
+        'sourceAgency': sourceAgency,
+        'category': category,
+        'content': content,
+        'status': 'DRAFT',
+      },
+    );
+    final payload = _decodeJsonObject(response.body);
+    if ((response.statusCode == 200 || response.statusCode == 201) &&
+        payload != null) {
+      return payload;
+    }
+    throw Exception(
+      payload?['error']?.toString() ??
+          'Unable to save the guide draft (HTTP ${response.statusCode}).',
+    );
+  }
+
+  static Future<Map<String, dynamic>> publishAgronomistGuide(
+    int guideId,
+  ) async {
+    final response = await authenticatedRequest(
+      '/api/v1/agronomist/guides/$guideId/publish',
+      method: 'POST',
+    );
+    final payload = _decodeJsonObject(response.body);
+    if (response.statusCode == 200 && payload != null) return payload;
+    throw Exception(
+      payload?['error']?.toString() ??
+          'Unable to publish the guide (HTTP ${response.statusCode}).',
+    );
   }
 
   /// Fetches real-time metrics for the Transporter dashboard

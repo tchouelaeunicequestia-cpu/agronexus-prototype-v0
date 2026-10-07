@@ -1,11 +1,15 @@
 package com.agronexus.api.controller;
 
 import com.agronexus.api.entity.TelemetryLog;
+import com.agronexus.api.entity.ActuatorCommand;
+import com.agronexus.api.entity.User;
+import com.agronexus.api.repository.ActuatorCommandRepository;
 import com.agronexus.api.repository.TelemetryLogRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -29,11 +33,15 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class TelemetryController {
 
     private final TelemetryLogRepository telemetryLogRepository;
+    private final ActuatorCommandRepository actuatorCommandRepository;
     private final CopyOnWriteArrayList<SseEmitter> alertSubscribers =
             new CopyOnWriteArrayList<>();
 
-    public TelemetryController(TelemetryLogRepository telemetryLogRepository) {
+    public TelemetryController(
+            TelemetryLogRepository telemetryLogRepository,
+            ActuatorCommandRepository actuatorCommandRepository) {
         this.telemetryLogRepository = telemetryLogRepository;
+        this.actuatorCommandRepository = actuatorCommandRepository;
     }
 
     // POST /api/v1/telemetry — ESP32 Sensor Hardware Payload Ingestion
@@ -87,6 +95,60 @@ public class TelemetryController {
     @GetMapping("/node/{nodeId}")
     public ResponseEntity<List<TelemetryLog>> getNodeLogs(@PathVariable String nodeId) {
         return ResponseEntity.ok(telemetryLogRepository.findTop50ByNodeIdOrderByRecordedAtDesc(nodeId));
+    }
+
+    @GetMapping("/nodes")
+    @PreAuthorize("hasRole('AGRONOMIST')")
+    public ResponseEntity<List<TelemetryLog>> getNodes() {
+        List<TelemetryLog> nodes = telemetryLogRepository.findDistinctNodeIds().stream()
+                .map(telemetryLogRepository::findTopByNodeIdOrderByRecordedAtDesc)
+                .filter(log -> log != null)
+                .toList();
+        return ResponseEntity.ok(nodes);
+    }
+
+    @GetMapping("/actuator-commands")
+    @PreAuthorize("hasRole('AGRONOMIST')")
+    public ResponseEntity<List<Map<String, Object>>> getActuatorCommands() {
+        return ResponseEntity.ok(actuatorCommandRepository.findAllByOrderByCreatedAtDesc()
+                .stream()
+                .map(TelemetryController::commandResponse)
+                .toList());
+    }
+
+    @PostMapping("/nodes/{nodeId}/commands")
+    @PreAuthorize("hasRole('AGRONOMIST')")
+    public ResponseEntity<?> createActuatorCommand(
+            @PathVariable String nodeId,
+            @RequestBody Map<String, String> request,
+            @AuthenticationPrincipal User user) {
+        String action = request.get("action");
+        if (!"AERATION_START".equals(action) && !"UV_DECONTAMINATION".equals(action)) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Action must be AERATION_START or UV_DECONTAMINATION."));
+        }
+        if (!telemetryLogRepository.existsByNodeId(nodeId)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                    "error", "No telemetry node was found with ID " + nodeId + "."));
+        }
+
+        ActuatorCommand command = ActuatorCommand.builder()
+                .nodeId(nodeId)
+                .action(action)
+                .status("PENDING_DEVICE")
+                .requestedBy(user.getEmail())
+                .build();
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(commandResponse(actuatorCommandRepository.save(command)));
+    }
+
+    private static Map<String, Object> commandResponse(ActuatorCommand command) {
+        return Map.of(
+                "id", command.getId(),
+                "nodeId", command.getNodeId(),
+                "action", command.getAction(),
+                "status", command.getStatus(),
+                "createdAt", command.getCreatedAt());
     }
 
     private void publishAlert(TelemetryLog alert) {

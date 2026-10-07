@@ -29,8 +29,9 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
   List<Map<String, dynamic>> _products = [];
   List<Map<String, dynamic>> _drafts = [];
   String _locationString = 'Unavailable';
-  String? _loadError;
+  bool _listingsLoaded = false;
   bool _isRefreshing = false;
+  bool _isSigningOut = false;
   int _activeNavIndex = 0;
 
   @override
@@ -42,40 +43,61 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
   Future<void> _fetchLiveDashboardData() async {
     setState(() {
       _isRefreshing = true;
-      _loadError = null;
     });
-    try {
-      final data = await ApiService.getFarmerDashboardMetrics();
-      final products = await ApiService.getFarmerProducts();
-      final drafts = await DraftService.loadDrafts();
-      try {
-        final locService = LocationServiceFactory.getService();
-        final pos = await locService.getCurrentLocation();
-        _locationString =
-            '${pos.description} • Lat ${pos.latitude.toStringAsFixed(4)}° N, Lon ${pos.longitude.toStringAsFixed(4)}° E';
-      } catch (_) {}
+    Map<String, dynamic> data = {};
+    List<Map<String, dynamic>> products = [];
+    var listingsLoaded = false;
+    var sessionExpired = false;
 
-      if (mounted) {
-        setState(() {
-          _dashboardData = data;
-          _products = products;
-          _drafts = drafts;
-          _isLoading = false;
-          _isRefreshing = false;
-        });
+    try {
+      data = await ApiService.getFarmerDashboardMetrics();
+    } catch (error) {
+      if (error is SessionExpiredException) {
+        sessionExpired = true;
+      } else {
+        debugPrint('Unable to load Farmer dashboard metrics: $error');
       }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _isRefreshing = false;
-          _loadError = e.toString().replaceFirst('Exception: ', '');
-        });
+    }
+
+    try {
+      products = await ApiService.getFarmerProducts();
+      listingsLoaded = true;
+    } catch (error) {
+      if (error is SessionExpiredException) {
+        sessionExpired = true;
+      } else {
+        debugPrint('Unable to load Farmer listings: $error');
       }
+    }
+
+    if (sessionExpired) {
+      if (mounted) await _signOut();
+      return;
+    }
+
+    final drafts = await DraftService.loadDrafts();
+    try {
+      final locService = LocationServiceFactory.getService();
+      final pos = await locService.getCurrentLocation();
+      _locationString =
+          '${pos.description} • Lat ${pos.latitude.toStringAsFixed(4)}° N, Lon ${pos.longitude.toStringAsFixed(4)}° E';
+    } catch (_) {}
+
+    if (mounted) {
+      setState(() {
+        _dashboardData = data;
+        _products = products;
+        _drafts = drafts;
+        _listingsLoaded = listingsLoaded;
+        _isLoading = false;
+        _isRefreshing = false;
+      });
     }
   }
 
   Future<void> _signOut() async {
+    if (_isSigningOut) return;
+    _isSigningOut = true;
     await context.read<AuthProvider>().logout();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
@@ -122,14 +144,13 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                   Container(color: const Color(0xFF0F382C)),
             ),
           ),
-          const Positioned.fill(child: ColoredBox(color: Color(0x770B1326))),
-
+          // const Positioned.fill(child: ColoredBox(color: Color(0x770B1326))),
           // TOP LAYER: Main UI with Frosted Glass Containers
           CustomScrollView(
             slivers: [
               SliverAppBar(
                 pinned: true,
-                backgroundColor: const Color(0xD90B1326),
+                backgroundColor: const Color(0xFF0B1326).withValues(alpha: 0.85),
                 elevation: 0,
                 toolbarHeight: 64,
                 flexibleSpace: ClipRRect(
@@ -181,7 +202,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
+                      color: Colors.white.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Row(
@@ -247,46 +268,6 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                       : Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (_loadError != null) ...[
-                              Container(
-                                width: double.infinity,
-                                margin: const EdgeInsets.only(bottom: 14),
-                                padding: const EdgeInsets.all(14),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF3A2024),
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(
-                                    color: const Color(0xFFFF8A80),
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.error_outline_rounded,
-                                      color: Color(0xFFFF8A80),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: Text(
-                                        'Dashboard data unavailable: $_loadError',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ),
-                                    IconButton(
-                                      tooltip: 'Retry loading dashboard',
-                                      onPressed: _fetchLiveDashboardData,
-                                      icon: const Icon(
-                                        Icons.refresh_rounded,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
                             ClipRRect(
                               borderRadius: BorderRadius.circular(20),
                               child: BackdropFilter(
@@ -297,10 +278,10 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                                 child: Container(
                                   padding: const EdgeInsets.all(20),
                                   decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.6),
+                                    color: Colors.black.withValues(alpha: 0.75),
                                     borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
-                                      color: Colors.white.withOpacity(0.2),
+                                      color: Colors.white.withValues(alpha: 0.2),
                                     ),
                                   ),
                                   child: Column(
@@ -373,13 +354,13 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                                           vertical: 10,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.1),
+                                          color: Colors.white.withValues(alpha: 0.1),
                                           borderRadius: BorderRadius.circular(
                                             12,
                                           ),
                                           border: Border.all(
-                                            color: Colors.white.withOpacity(
-                                              0.2,
+                                            color: Colors.white.withValues(
+                                              alpha: 0.2,
                                             ),
                                           ),
                                         ),
@@ -487,7 +468,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                                         vertical: 14,
                                       ),
                                       side: BorderSide(
-                                        color: Colors.white.withOpacity(0.5),
+                                        color: Colors.white.withValues(alpha: 0.5),
                                       ),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(14),
@@ -515,7 +496,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                                         vertical: 14,
                                       ),
                                       side: BorderSide(
-                                        color: Colors.white.withOpacity(0.5),
+                                        color: Colors.white.withValues(alpha: 0.5),
                                       ),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(14),
@@ -571,15 +552,17 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                                 child: Container(
                                   padding: const EdgeInsets.all(20),
                                   decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.6),
+                                    color: Colors.black.withValues(alpha: 0.6),
                                     borderRadius: BorderRadius.circular(16),
                                     border: Border.all(
-                                      color: Colors.white.withOpacity(0.2),
+                                      color: Colors.white.withValues(alpha: 0.2),
                                     ),
                                   ),
                                   child: Column(
                                     children: [
-                                      ..._products.isEmpty && _drafts.isEmpty
+                                      ..._products.isEmpty &&
+                                              _drafts.isEmpty &&
+                                              _listingsLoaded
                                           ? [
                                               const Padding(
                                                 padding: EdgeInsets.all(16),
@@ -611,7 +594,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                                                   Divider(
                                                     height: 24,
                                                     color: Colors.white
-                                                        .withOpacity(0.2),
+                                                        .withValues(alpha: 0.2),
                                                   ),
                                               ],
                                               for (
@@ -634,7 +617,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                                                   Divider(
                                                     height: 24,
                                                     color: Colors.white
-                                                        .withOpacity(0.2),
+                                                        .withValues(alpha: 0.2),
                                                   ),
                                               ],
                                             ],
@@ -663,9 +646,9 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.6),
+            color: Colors.black.withValues(alpha: 0.75),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(0.2)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -714,9 +697,9 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.6),
+            color: Colors.black.withValues(alpha: 0.75),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(0.2)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -755,7 +738,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                 child: LinearProgressIndicator(
                   value: _harvestProgress,
                   color: const Color(0xFF6CF8BB),
-                  backgroundColor: Colors.white.withOpacity(0.2),
+                  backgroundColor: Colors.white.withValues(alpha: 0.2),
                   minHeight: 6,
                 ),
               ),
@@ -774,9 +757,9 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.6),
+            color: Colors.black.withValues(alpha: 0.75),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(0.2)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -841,7 +824,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
@@ -895,7 +878,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
+                    color: Colors.white.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -923,7 +906,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.redAccent.withOpacity(0.2),
+                        color: Colors.redAccent.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Text(
