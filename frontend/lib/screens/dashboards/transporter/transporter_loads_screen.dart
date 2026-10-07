@@ -549,8 +549,8 @@ class _TransporterLoadsScreenState extends State<TransporterLoadsScreen> {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  load['image'] ?? 'https://images.unsplash.com/photo-1519162808019-7de1683fa2ad',
+                child: Image.asset(
+                  'assets/images/abstract_background_1.jpg',
                   width: 64,
                   height: 64,
                   fit: BoxFit.cover,

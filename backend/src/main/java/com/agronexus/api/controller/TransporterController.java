@@ -64,6 +64,37 @@ public class TransporterController {
         return ResponseEntity.ok(orderSummary(order));
     }
 
+    @GetMapping("/active-trip")
+    @PreAuthorize("hasRole('TRANSPORTER')")
+    public ResponseEntity<Map<String, Object>> getActiveTrip(@AuthenticationPrincipal User transporter) {
+        // Fetch the first order assigned to this transporter that is in transit or dispatched
+        Order activeOrder = orderRepository.findAll().stream()
+                .filter(order -> order.getTransporter() != null && 
+                                 order.getTransporter().getId().equals(transporter.getId()) &&
+                                 (order.getEscrowStatus() == EscrowStatus.DISPATCHED || order.getEscrowStatus() == EscrowStatus.IN_TRANSIT))
+                .findFirst()
+                .orElse(null);
+
+        if (activeOrder == null) {
+            return ResponseEntity.ok(Map.of("hasActiveTrip", false));
+        }
+        
+        Map<String, Object> tripData = orderSummary(activeOrder);
+        tripData.put("hasActiveTrip", true);
+        return ResponseEntity.ok(tripData);
+    }
+
+    @GetMapping("/waybill/{orderCode}")
+    @PreAuthorize("hasRole('TRANSPORTER')")
+    public ResponseEntity<Map<String, Object>> getWaybill(@PathVariable String orderCode, @AuthenticationPrincipal User transporter) {
+        Order order = orderRepository.findAll().stream()
+                .filter(o -> o.getOrderCode().equals(orderCode))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Order not found"));
+                
+        return ResponseEntity.ok(orderSummary(order));
+    }
+
     private Map<String, Object> orderSummary(Order order) {
         String sellerName = order.getProduct().getFarmer() != null ? order.getProduct().getFarmer().getFullName() : "Unknown Farmer";
         String origin = order.getProduct().getLocation() != null ? order.getProduct().getLocation() : "Farm Gate";
