@@ -768,8 +768,8 @@ class _RegisterScreenState extends State<RegisterScreen>
     return Container(
       decoration: BoxDecoration(
         image: DecorationImage(
-          image: NetworkImage(
-            'https://lh3.googleusercontent.com/aida-public/AB6AXuAeQ1oQkkQylhbor-QfqoLQ9Yls4uOQhf9ZDXJAy_QHbCeETZN7Lg0tRwMbWbkWJe4nT1Uq9gZirqlhqZVdj8-yXG-sSpZyv3NwJkqIWaGPuWf9sYOT-RvfYbVRshioZdYZ9kxdw5kd78n_4-_DAzkAEz-eZ3R_pf5Cl6ciHJHVVYaLaX6Y5TntGzHa4_4TkOa_9GnCxXSlsmQDoomG8UwDUlQaTamHUXmnicPWGVbzKM7R6z7DXuQl',
+          image: const AssetImage(
+            'assets/images/abstract_background_1.jpg',
           ),
           fit: BoxFit.cover,
           colorFilter: ColorFilter.mode(

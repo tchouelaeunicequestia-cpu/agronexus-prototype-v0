@@ -21,8 +21,7 @@ class AgronomistDashboard extends StatefulWidget {
 }
 
 class _AgronomistDashboardState extends State<AgronomistDashboard> {
-  static const _backgroundImage =
-      'https://img.freepik.com/premium-photo/agriculture-project-africa_943281-36244.jpg?w=2000';
+  static const _backgroundImage = 'assets/images/abstract_background_1.jpg';
 
   bool _isLoading = true;
   Map<String, dynamic> _metrics = {};
@@ -30,44 +29,26 @@ class _AgronomistDashboardState extends State<AgronomistDashboard> {
   String? _metricsError;
   String? _nodesError;
   Map<String, dynamic>? _liveAlert;
-  StreamSubscription<Map<String, dynamic>>? _alertSubscription;
+  Timer? _overviewPollingTimer;
+  String? _lastAlertKey;
   int _selectedIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _loadOverview();
-    _subscribeToTelemetryAlerts();
+    _overviewPollingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) _loadOverview(showNewAlerts: true);
+    });
   }
 
   @override
   void dispose() {
-    _alertSubscription?.cancel();
+    _overviewPollingTimer?.cancel();
     super.dispose();
   }
 
-  void _subscribeToTelemetryAlerts() {
-    _alertSubscription = ApiService.telemetryAlertStream().listen(
-      (alert) {
-        if (!mounted) return;
-        setState(() => _liveAlert = alert);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Telemetry alert from ${alert['nodeId'] ?? 'a storage node'}',
-            ),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: const Color(0xFF8F2828),
-          ),
-        );
-      },
-      onError: (Object error, StackTrace stackTrace) {
-        debugPrint('Agronomist telemetry stream unavailable: $error');
-      },
-    );
-  }
-
-  Future<void> _loadOverview() async {
+  Future<void> _loadOverview({bool showNewAlerts = false}) async {
     setState(() => _isLoading = true);
     Map<String, dynamic>? metrics;
     List<Map<String, dynamic>>? nodes;
@@ -93,14 +74,48 @@ class _AgronomistDashboardState extends State<AgronomistDashboard> {
     }
 
     if (!mounted) return;
+    Map<String, dynamic>? latestAlert;
+    if (nodes != null) {
+      final alerts =
+          nodes.where((node) => node['isAlertTriggered'] == true).toList()
+            ..sort(
+              (first, second) =>
+                  _recordedAt(second).compareTo(_recordedAt(first)),
+            );
+      if (alerts.isNotEmpty) latestAlert = alerts.first;
+    }
+    final latestAlertKey = latestAlert == null
+        ? null
+        : '${latestAlert['id'] ?? latestAlert['nodeId']}-'
+              '${latestAlert['recordedAt'] ?? ''}';
+    final shouldNotify =
+        showNewAlerts && latestAlert != null && latestAlertKey != _lastAlertKey;
+    if (nodes != null) _lastAlertKey = latestAlertKey;
+
     setState(() {
       if (metrics != null) _metrics = metrics;
       if (nodes != null) _nodes = nodes;
+      if (nodes != null) _liveAlert = latestAlert;
       _metricsError = metricsError;
       _nodesError = nodesError;
       _isLoading = false;
     });
+    if (shouldNotify) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Telemetry alert from ${latestAlert['nodeId'] ?? 'a storage node'}',
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xFF8F2828),
+        ),
+      );
+    }
   }
+
+  static DateTime _recordedAt(Map<String, dynamic> reading) =>
+      DateTime.tryParse(reading['recordedAt']?.toString() ?? '') ??
+      DateTime.fromMillisecondsSinceEpoch(0);
 
   @override
   Widget build(BuildContext context) {

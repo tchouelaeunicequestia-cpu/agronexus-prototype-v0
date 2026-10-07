@@ -24,9 +24,18 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
 
   Future<void> _fetchNodeAlerts() async {
     try {
-      final res = await ApiService.authenticatedRequest('/api/v1/telemetry/node/ESP32-MB04');
+      final res = await ApiService.authenticatedRequest('/api/v1/admin/infra/status');
       if (res.statusCode == 200) {
-        // Can read real telemetry logs if available
+        final data = jsonDecode(res.body);
+        if (data is Map<String, dynamic> && data['activeNodes'] != null) {
+          if (mounted) {
+            setState(() {
+              _activeNodes = (data['activeNodes'] as num).toInt();
+              // Total nodes logic here could be a simple calc or backend driven
+              _totalNodes = _activeNodes + 2; 
+            });
+          }
+        }
       }
     } catch (_) {}
   }

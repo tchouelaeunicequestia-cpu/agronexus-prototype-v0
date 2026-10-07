@@ -51,8 +51,7 @@ class _TransporterProfileScreenState extends State<TransporterProfileScreen> {
       body: Stack(
         children: [
           Positioned.fill(
-            child: Image.network(
-              'https://img.freepik.com/premium-photo/agriculture-project-africa_943281-36244.jpg?w=2000',
+            child: Image.asset('assets/images/abstract_background_1.jpg',
               fit: BoxFit.cover,
               color: Colors.black.withOpacity(0.5),
               colorBlendMode: BlendMode.darken,

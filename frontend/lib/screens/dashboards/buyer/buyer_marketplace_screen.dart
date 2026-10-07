@@ -135,8 +135,7 @@ class _BuyerMarketplaceScreenState extends State<BuyerMarketplaceScreen> {
       body: Stack(
         children: [
           Positioned.fill(
-            child: Image.network(
-              'https://img.freepik.com/premium-photo/agriculture-project-africa_943281-36244.jpg?w=2000',
+            child: Image.asset('assets/images/abstract_background_1.jpg',
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) =>
                   Container(color: const Color(0xFF0F382C)),

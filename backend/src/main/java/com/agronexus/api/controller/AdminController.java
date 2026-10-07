@@ -155,6 +155,59 @@ public class AdminController {
         return ResponseEntity.ok(metrics);
     }
 
+    @GetMapping("/vault/logs")
+    public ResponseEntity<List<Map<String, Object>>> getVaultLogs() {
+        List<Map<String, Object>> logs = orderRepository.findAll().stream()
+                .filter(order -> order.getEscrowStatus() == EscrowStatus.COMPLETED || order.getEscrowStatus() == EscrowStatus.REFUNDED)
+                .map(order -> {
+                    Map<String, Object> log = new HashMap<>();
+                    log.put("order", "#" + order.getOrderCode());
+                    log.put("type", order.getEscrowStatus() == EscrowStatus.REFUNDED ? "Refund" : "Settlement");
+                    log.put("speed", "Cleared");
+                    log.put("beneficiary", order.getBuyer() != null && order.getBuyer().getFullName() != null ? order.getBuyer().getFullName() : "System");
+                    log.put("amount", order.getTotalEscrowAmount() + " FCFA");
+                    log.put("subtext", "Transaction finalized");
+                    log.put("time", order.getUpdatedAt() != null ? order.getUpdatedAt().toString() : "Recent");
+                    log.put("isFast", true);
+                    return log;
+                }).toList();
+        return ResponseEntity.ok(logs);
+    }
+
+    @GetMapping("/disputes")
+    public ResponseEntity<List<Map<String, Object>>> getDisputes() {
+        List<Map<String, Object>> disputes = orderRepository.findAll().stream()
+                .filter(order -> order.getEscrowStatus() == EscrowStatus.DISPUTED)
+                .map(order -> {
+                    Map<String, Object> dispute = new HashMap<>();
+                    dispute.put("id", order.getOrderCode());
+                    dispute.put("title", "Dispute for Order " + order.getOrderCode());
+                    dispute.put("status", "OPEN");
+                    dispute.put("buyer", order.getBuyer() != null && order.getBuyer().getFullName() != null ? order.getBuyer().getFullName() : "Unknown");
+                    dispute.put("amount", order.getTotalEscrowAmount() + " FCFA");
+                    dispute.put("createdAt", order.getCreatedAt() != null ? order.getCreatedAt().toString() : "Unknown");
+                    return dispute;
+                }).toList();
+        return ResponseEntity.ok(disputes);
+    }
+
+    @GetMapping("/operators/certified")
+    public ResponseEntity<List<Map<String, Object>>> getCertifiedOperators() {
+        List<Map<String, Object>> operators = userRepository.findAll().stream()
+                .filter(user -> user.getIsVerified() != null && user.getIsVerified())
+                .map(this::toSafeUserPayload)
+                .toList();
+        return ResponseEntity.ok(operators);
+    }
+
+    @GetMapping("/infra/status")
+    public ResponseEntity<Map<String, Object>> getInfraStatus() {
+        Map<String, Object> status = new HashMap<>();
+        status.put("activeNodes", telemetryLogRepository.count());
+        status.put("hubs", List.of("Bafia", "Yaounde", "Obala", "Monatele"));
+        return ResponseEntity.ok(status);
+    }
+
     private Map<String, Object> toSafeUserPayload(User user) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("id", user.getId());

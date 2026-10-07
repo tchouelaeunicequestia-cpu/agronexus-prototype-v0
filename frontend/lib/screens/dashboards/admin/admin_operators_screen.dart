@@ -14,57 +14,8 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
   bool _isLoading = false;
   List<dynamic> _backendPendingUsers = [];
   
-  // Dynamic pending queues based on HTML design
-  final List<Map<String, dynamic>> _priorityQueue = [
-    {
-      'id': 'op-1',
-      'name': 'Alain Kengne',
-      'role': 'Transporter Fleet Operator',
-      'auditId': '#TX-8919',
-      'license': 'Heavy Duty Class C • Bafia Hub',
-      'govId': 'CMR-2026-8919K (MinTransport)',
-      'biometricScore': '99.4% Vector Score',
-      'vehicle': '12-Ton Reefer Truck (LT-892-BA)',
-      'vehicleDetails': 'Cold-chain inspection valid • -18°C calib.',
-      'avatarUrl': 'https://lh3.googleusercontent.com/aida-public/AB6AXuD3fn4KS4dx9koFz7lfNJrjnVLz_uIUnK8Ax9SBMASTAnpQGUEeqc20LXX-gwUwvMet44o5cO3C6h6Ds8WFCrGyRcDQl3GlrifB-voL0kaCMPH1YZ4dzjg_R8sRMKEyCiekeWbrdVZcfvaRdCYfruhqyVdjcPiaNhYJvab2kp-2MeiMH8opHh69isBkCRs2uqm_4XeyLgLzF5agj7Den_vM3QEwHDZBw5FeWcv2YJZQh2ozwyBELgrl',
-      'type': 'transporter',
-    },
-    {
-      'id': 'op-2',
-      'name': 'Lékié Hydroponic Hub',
-      'role': 'Rep: Célestin Manga • Monatele Sector',
-      'auditId': 'Cadastral',
-      'facilities': '4 Silos • 12 Greenhouses',
-      'probes': '4 Probes (NDVI 0.78)',
-      'hash': '0x9a4b...e27f',
-      'avatarUrl': 'https://lh3.googleusercontent.com/aida-public/AB6AXuBg4tqtRZlznHF0L-kpCOYm9-J41tcBYIhDtEVgXje2mQQs_Vy_TYM-0PpJKBNJY0evcJPpuw4aYCpgCyQjo6EFqTlBTvHwM8HKVb-sxDJKixmaGSOIlYfhhGNGm5bJUxKYYB9s3v7SYV4TFz9XYaLUCy1oRL_Lacg6Z8AO1QyiMWZQ_O_9ZWuT59VU3iaQoM6HTIkmsqyr_fv2gY3mIxyyrdBoClJCzxCbJ9Mjh3j5qFfW9At1TKV-',
-      'mapUrl': 'https://lh3.googleusercontent.com/aida-public/AB6AXuCnR6mv8IeM8FoKo2M7gJsltSwSVhpashkBt1G4TO8xWczv7LYQaJVni-6kZlxJSSI-Rr6qwZFlt8642jpFcvugRn7FPTwDAk-r9Uuwi-Ul2ZWQtSGH6hI_wbupcFOiHr8e18lzhcYzLk5wipa2oNUdnHKTBxKTVXHQHlGz_4GovMKA65PzOskGyJZ0k2rQDWZ8kBmi-8UwgsM0tfDmCedtH9iqiQlPWEZTSg4ZPVZ1UaRuE6hvIxIB',
-      'type': 'cooperative',
-    },
-    {
-      'id': 'op-3',
-      'name': 'Yaoundé Supermarket Chain',
-      'role': 'Institutional Wholesale Terminal',
-      'auditId': 'Escrow Stake',
-      'escrowBuffer': '5,000,000 FCFA',
-      'type': 'buyer',
-    },
-  ];
-
-  final List<Map<String, dynamic>> _certifiedOperators = [
-    {
-      'name': 'Mbam Grain Silo Consortium',
-      'audit': 'ID: CERT-9921 • Signed 12m ago',
-      'icon': Icons.psychology,
-      'color': const Color(0xFF45DFA4),
-    },
-    {
-      'name': 'Douala Cold-Logistics Group',
-      'audit': 'ID: CERT-8804 • Signed 44m ago',
-      'icon': Icons.precision_manufacturing,
-      'color': const Color(0xFFFFB95F),
-    },
-  ];
+  List<Map<String, dynamic>> _priorityQueue = [];
+  List<Map<String, dynamic>> _certifiedOperators = [];
 
   @override
   void initState() {
@@ -81,6 +32,30 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
         if (data is List) {
           setState(() {
             _backendPendingUsers = data;
+            // Also populate priority queue with backend users so the UI shows them
+            _priorityQueue = data.map((u) => {
+              'id': u['id'].toString(),
+              'name': u['fullName'] ?? 'Unknown',
+              'role': u['role'] ?? 'User',
+              'auditId': '#ID-${u['id']}',
+              'license': 'Pending Verif.',
+              'type': (u['role'] ?? '').toString().toLowerCase(),
+            }).toList().cast<Map<String, dynamic>>();
+          });
+        }
+      }
+
+      final resCert = await ApiService.authenticatedRequest('/api/v1/admin/operators/certified');
+      if (resCert.statusCode == 200) {
+        final certData = jsonDecode(resCert.body);
+        if (certData is List) {
+          setState(() {
+            _certifiedOperators = certData.map((u) => {
+              'name': u['fullName'] ?? 'Unknown',
+              'audit': 'ID: CERT-${u['id']} • Signed',
+              'icon': Icons.verified,
+              'color': const Color(0xFF4EDEA3),
+            }).toList().cast<Map<String, dynamic>>();
           });
         }
       }

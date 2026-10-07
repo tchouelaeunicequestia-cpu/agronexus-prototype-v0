@@ -18,38 +18,7 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
   double _mtnBalance = 28400000;
   double _orangeBalance = 20250000;
 
-  final List<Map<String, dynamic>> _settlementLogs = [
-    {
-      'order': '#ORD-98210',
-      'type': 'Farmer Settlement',
-      'speed': '0.8s Cleared',
-      'beneficiary': 'Eunice F. (MTN MoMo)',
-      'amount': '1,572,500 FCFA',
-      'subtext': 'Phytosanitary multi-sig verified',
-      'time': 'Just now',
-      'isFast': true,
-    },
-    {
-      'order': '#ORD-98208',
-      'type': 'Freight Release',
-      'speed': 'Cleared',
-      'beneficiary': 'Transporter Jean-Paul M.',
-      'amount': '185,000 FCFA',
-      'subtext': 'Weighbridge batch clearance match',
-      'time': '4m ago',
-      'isFast': false,
-    },
-    {
-      'order': '#ORD-98205',
-      'type': 'Farmer Settlement',
-      'speed': 'Cleared',
-      'beneficiary': 'Farmer Jean-Baptiste',
-      'amount': '360,000 FCFA',
-      'subtext': 'Cold storage IoT seal unlatched',
-      'time': '12m ago',
-      'isFast': false,
-    },
-  ];
+  List<Map<String, dynamic>> _settlementLogs = [];
 
   @override
   void initState() {
@@ -70,6 +39,16 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
               _totalLocked = vol;
             });
           }
+        }
+      }
+
+      final logsRes = await ApiService.authenticatedRequest('/api/v1/admin/vault/logs');
+      if (logsRes.statusCode == 200) {
+        final logsData = jsonDecode(logsRes.body);
+        if (logsData is List) {
+          setState(() {
+            _settlementLogs = List<Map<String, dynamic>>.from(logsData);
+          });
         }
       }
     } catch (_) {
