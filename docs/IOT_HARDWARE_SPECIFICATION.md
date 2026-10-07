@@ -129,3 +129,9 @@ void loop() {
   "isAlertTriggered": true
 }
 ```
+
+## 5. Equipment request status and hardware integration
+
+The Agronomist interface can save `AERATION_START` and `UV_DECONTAMINATION` requests for a discovered node. These records are persisted with `PENDING_DEVICE` status for visibility and audit. The backend does **not** dispatch requests to an ESP32, control a relay, or claim that equipment has been activated.
+
+Executing requests requires a separately designed device transport and authentication scheme, device-side allowlists and safety interlocks, delivery/retry rules, and device acknowledgements. Until that integration and its operational safety review exist, requests remain pending and must not be treated as equipment state.

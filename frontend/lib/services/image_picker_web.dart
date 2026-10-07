@@ -2,6 +2,7 @@
 import 'dart:async';
 import 'dart:html' as html;
 import 'dart:typed_data';
+
 import 'image_picker_model.dart';
 
 bool _isMobileBrowser() {
@@ -55,19 +56,23 @@ Future<PickedProduceImage?> pickDeviceImage({bool fromCamera = false}) {
           final rawResult = byteReader.result;
           if (rawResult != null && rawResult is ByteBuffer) {
             if (!completer.isCompleted) {
-              completer.complete(PickedProduceImage(
-                bytes: rawResult.asUint8List(),
-                dataUrl: dataUrl,
-                name: file.name,
-              ));
+              completer.complete(
+                PickedProduceImage(
+                  bytes: rawResult.asUint8List(),
+                  dataUrl: dataUrl,
+                  name: file.name,
+                ),
+              );
             }
           } else if (rawResult != null && rawResult is List<int>) {
             if (!completer.isCompleted) {
-              completer.complete(PickedProduceImage(
-                bytes: Uint8List.fromList(rawResult),
-                dataUrl: dataUrl,
-                name: file.name,
-              ));
+              completer.complete(
+                PickedProduceImage(
+                  bytes: Uint8List.fromList(rawResult),
+                  dataUrl: dataUrl,
+                  name: file.name,
+                ),
+              );
             }
           } else {
             if (!completer.isCompleted) completer.complete(null);
@@ -81,21 +86,25 @@ Future<PickedProduceImage?> pickDeviceImage({bool fromCamera = false}) {
   });
 
   html.document.body?.children.add(input);
-  input.click();
 
-  // Detect dialog cancel: when the browser window regains focus without a file
-  // being selected, complete the future with null after a short grace period
-  // (grace period allows onChange to fire first if a file was selected).
+  // Some browsers do not dispatch `cancel` for a dismissed file dialog.
+  // Wait until the window actually loses and regains focus before treating
+  // that interaction as a cancellation.
+  var dialogOpened = false;
+  html.window.onBlur.first.then((_) => dialogOpened = true);
   StreamSubscription<html.Event>? focusSub;
   focusSub = html.window.onFocus.listen((_) {
+    if (!dialogOpened) return;
     focusSub?.cancel();
-    Future.delayed(const Duration(milliseconds: 400), () {
+    Future.delayed(const Duration(milliseconds: 800), () {
       if (!completer.isCompleted) {
         input.remove();
         completer.complete(null);
       }
     });
   });
+
+  input.click();
 
   return completer.future;
 }

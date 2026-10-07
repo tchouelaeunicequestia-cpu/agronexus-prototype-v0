@@ -3,5 +3,6 @@
     "java.compile.nullAnalysis.mode": "automatic",
     "chat.tools.terminal.autoApprove": {
         "dart": true
-    }
+    },
+    "terminal.integrated.defaultProfile.windows": "PowerShell"
 }

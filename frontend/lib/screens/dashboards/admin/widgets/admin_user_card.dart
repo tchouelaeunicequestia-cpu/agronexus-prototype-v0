@@ -22,10 +22,10 @@ class AdminUserCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.65),
+        color: Colors.black.withValues(alpha: 0.65),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isVerified ? Colors.green.withOpacity(0.4) : Colors.orange.withOpacity(0.6),
+          color: isVerified ? Colors.green.withValues(alpha: 0.4) : Colors.orange.withValues(alpha: 0.6),
           width: 1.5,
         ),
       ),
@@ -50,7 +50,7 @@ class AdminUserCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: isVerified ? Colors.green.withOpacity(0.2) : Colors.orange.withOpacity(0.2),
+                color: isVerified ? Colors.green.withValues(alpha: 0.2) : Colors.orange.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -127,9 +127,9 @@ class AdminUserCard extends StatelessWidget {
                 height: 120,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
+                  color: Colors.white.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: biometric ? Colors.green.withOpacity(0.5) : Colors.orange.withOpacity(0.5)),
+                  border: Border.all(color: biometric ? Colors.green.withValues(alpha: 0.5) : Colors.orange.withValues(alpha: 0.5)),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,

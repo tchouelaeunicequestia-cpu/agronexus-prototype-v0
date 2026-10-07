@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+
 import 'dart:ui';
+
 import '../../services/api_service.dart';
 
 class BuyerCheckoutModal extends StatefulWidget {
@@ -25,7 +27,8 @@ class _BuyerCheckoutModalState extends State<BuyerCheckoutModal> {
   void _processEscrowPayment() async {
     setState(() => _isProcessing = true);
     try {
-      final double pricePerUnit = (widget.product['pricePerUnit'] ?? 0).toDouble();
+      final double pricePerUnit = (widget.product['pricePerUnit'] ?? 0)
+          .toDouble();
       final double subtotal = pricePerUnit * _orderQuantity;
       final double platformFee = subtotal * 0.05; // 5% Platform Service Fee
       final double totalAmount = subtotal + platformFee;
@@ -71,10 +74,11 @@ class _BuyerCheckoutModalState extends State<BuyerCheckoutModal> {
 
   @override
   Widget build(BuildContext context) {
-    final double pricePerUnit = (widget.product['pricePerUnit'] ?? 0).toDouble();
+    final double pricePerUnit = (widget.product['pricePerUnit'] ?? 0)
+        .toDouble();
     final int maxQuantity = widget.product['availableQuantity'] ?? 1;
     final String unitType = widget.product['unitType'] ?? 'kg';
-    
+
     final double subtotal = pricePerUnit * _orderQuantity;
     final double platformFee = subtotal * 0.05;
     final double totalAmount = subtotal + platformFee;
@@ -86,8 +90,10 @@ class _BuyerCheckoutModalState extends State<BuyerCheckoutModal> {
         child: Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.8),
-            border: Border(top: BorderSide(color: Colors.white.withOpacity(0.2))),
+            color: Colors.black.withValues(alpha: 0.8),
+            border: Border(
+              top: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+            ),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -98,68 +104,115 @@ class _BuyerCheckoutModalState extends State<BuyerCheckoutModal> {
                 children: [
                   const Text(
                     'Multi-Sig Escrow Checkout',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.white70),
                     onPressed: () => Navigator.pop(context),
-                  )
+                  ),
                 ],
               ),
               const SizedBox(height: 20),
               Text(
                 widget.product['title'] ?? 'Produce Item',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF6CF8BB)),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF6CF8BB),
+                ),
               ),
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Order Quantity:', style: TextStyle(color: Colors.white70)),
+                  const Text(
+                    'Order Quantity:',
+                    style: TextStyle(color: Colors.white70),
+                  ),
                   Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.remove_circle_outline, color: Colors.white),
+                        icon: const Icon(
+                          Icons.remove_circle_outline,
+                          color: Colors.white,
+                        ),
                         onPressed: _orderQuantity > 1
                             ? () => setState(() => _orderQuantity--)
                             : null,
                       ),
                       Text(
                         '$_orderQuantity $unitType',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.add_circle_outline, color: Colors.white),
+                        icon: const Icon(
+                          Icons.add_circle_outline,
+                          color: Colors.white,
+                        ),
                         onPressed: _orderQuantity < maxQuantity
                             ? () => setState(() => _orderQuantity++)
                             : null,
                       ),
                     ],
-                  )
+                  ),
                 ],
               ),
-              Divider(color: Colors.white.withOpacity(0.2), height: 32),
+              Divider(color: Colors.white.withValues(alpha: 0.2), height: 32),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Subtotal', style: TextStyle(color: Colors.white70)),
-                  Text('${subtotal.toStringAsFixed(2)} XAF', style: const TextStyle(color: Colors.white)),
+                  const Text(
+                    'Subtotal',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  Text(
+                    '${subtotal.toStringAsFixed(2)} XAF',
+                    style: const TextStyle(color: Colors.white),
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Platform Service Fee (5%)', style: TextStyle(color: Colors.white70)),
-                  Text('${platformFee.toStringAsFixed(2)} XAF', style: const TextStyle(color: Colors.white)),
+                  const Text(
+                    'Platform Service Fee (5%)',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  Text(
+                    '${platformFee.toStringAsFixed(2)} XAF',
+                    style: const TextStyle(color: Colors.white),
+                  ),
                 ],
               ),
-              Divider(color: Colors.white.withOpacity(0.2), height: 32),
+              Divider(color: Colors.white.withValues(alpha: 0.2), height: 32),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Total Escrow Lock', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                  Text('${totalAmount.toStringAsFixed(2)} XAF', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF6CF8BB))),
+                  const Text(
+                    'Total Escrow Lock',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    '${totalAmount.toStringAsFixed(2)} XAF',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF6CF8BB),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 24),
@@ -169,18 +222,34 @@ class _BuyerCheckoutModalState extends State<BuyerCheckoutModal> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF16A34A),
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   onPressed: _isProcessing ? null : _processEscrowPayment,
                   child: _isProcessing
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text('Confirm & Lock Funds', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Confirm & Lock Funds',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 12),
               const Center(
                 child: Text(
-                  'Funds are locked in a CEMAC trust vault until QC signoff.',
+                  'Funds are held in escrow until quality check signoff.',
                   style: TextStyle(fontSize: 11, color: Colors.white54),
                   textAlign: TextAlign.center,
                 ),

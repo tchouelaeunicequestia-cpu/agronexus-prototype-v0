@@ -29,6 +29,7 @@ public class Product {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "farmer_id", nullable = false)//many to one mapping
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private User farmer;
 
     @Column(name = "title", nullable = false, length = 150)
@@ -50,6 +51,7 @@ public class Product {
     private Double availableQuantity;
 
     @Column(name = "location", nullable = false, columnDefinition = "geometry(Point, 4326)")
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Point location;
 
     @Column(name = "image_url")

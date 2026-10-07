@@ -1,11 +1,11 @@
 {
-    "name": "frontend",
-    "short_name": "frontend",
+    "name": "AGRONEXUS",
+    "short_name": "AGRONEXUS",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Connecting Farms, Escrow & IoT in One Unified Hub.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

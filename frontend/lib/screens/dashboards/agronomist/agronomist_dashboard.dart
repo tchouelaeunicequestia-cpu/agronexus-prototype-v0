@@ -1,12 +1,17 @@
-// lib/screens/dashboards/agronomist_dashboard.dart
 import 'dart:async';
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:frontend/services/api_service.dart';
-import 'package:frontend/services/auth_provider.dart';
-import 'package:frontend/services/draft_service.dart';
-import 'package:frontend/services/platform_services.dart';
+
+import '../../../services/api_service.dart';
+import '../../../services/auth_provider.dart';
+import 'agronomist_advisory_screen.dart';
+import 'agronomist_ai_sandbox_screen.dart';
+import 'agronomist_components.dart';
+import 'agronomist_guide_publisher_screen.dart';
+import 'agronomist_profile_screen.dart';
+import 'agronomist_silo_screen.dart';
 
 class AgronomistDashboard extends StatefulWidget {
   const AgronomistDashboard({super.key});
@@ -16,31 +21,23 @@ class AgronomistDashboard extends StatefulWidget {
 }
 
 class _AgronomistDashboardState extends State<AgronomistDashboard> {
+  static const _backgroundImage =
+      'https://img.freepik.com/premium-photo/agriculture-project-africa_943281-36244.jpg?w=2000';
+
   bool _isLoading = true;
-  bool _isBroadcasting = false;
-  bool _isFanActive = false;
   Map<String, dynamic> _metrics = {};
-  StreamSubscription<Map<String, dynamic>>? _alertSubscription;
+  List<Map<String, dynamic>> _nodes = [];
+  String? _metricsError;
+  String? _nodesError;
   Map<String, dynamic>? _liveAlert;
+  StreamSubscription<Map<String, dynamic>>? _alertSubscription;
+  int _selectedIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _fetchMetrics();
+    _loadOverview();
     _subscribeToTelemetryAlerts();
-  }
-
-  void _subscribeToTelemetryAlerts() {
-    _alertSubscription = ApiService.telemetryAlertStream().listen(
-      (alert) {
-        if (!mounted) return;
-        setState(() => _liveAlert = alert);
-        _showCustomSnackBar(
-          'Critical telemetry alert from ${alert['nodeId'] ?? 'silo node'}',
-        );
-      },
-      onError: (_) {},
-    );
   }
 
   @override
@@ -49,203 +46,236 @@ class _AgronomistDashboardState extends State<AgronomistDashboard> {
     super.dispose();
   }
 
-  Future<void> _fetchMetrics() async {
-    setState(() => _isLoading = true);
-    try {
-      final data = await ApiService.getAgronomistMetrics();
-      if (mounted) {
-        setState(() {
-          _metrics = data;
-          _isLoading = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
-    }
+  void _subscribeToTelemetryAlerts() {
+    _alertSubscription = ApiService.telemetryAlertStream().listen(
+      (alert) {
+        if (!mounted) return;
+        setState(() => _liveAlert = alert);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Telemetry alert from ${alert['nodeId'] ?? 'a storage node'}',
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: const Color(0xFF8F2828),
+          ),
+        );
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        debugPrint('Agronomist telemetry stream unavailable: $error');
+      },
+    );
   }
 
-  void _showCustomSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: const Color(0xFF003820),
-        duration: const Duration(seconds: 3),
-      ),
-    );
+  Future<void> _loadOverview() async {
+    setState(() => _isLoading = true);
+    Map<String, dynamic>? metrics;
+    List<Map<String, dynamic>>? nodes;
+    String? metricsError;
+    String? nodesError;
+
+    try {
+      metrics = await ApiService.getAgronomistMetrics();
+    } on SessionExpiredException {
+      await context.read<AuthProvider>().logout();
+      return;
+    } catch (error) {
+      metricsError = agronomistErrorMessage(error);
+    }
+
+    try {
+      nodes = await ApiService.getTelemetryNodes();
+    } on SessionExpiredException {
+      await context.read<AuthProvider>().logout();
+      return;
+    } catch (error) {
+      nodesError = agronomistErrorMessage(error);
+    }
+
+    if (!mounted) return;
+    setState(() {
+      if (metrics != null) _metrics = metrics;
+      if (nodes != null) _nodes = nodes;
+      _metricsError = metricsError;
+      _nodesError = nodesError;
+      _isLoading = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
-    final user = authProvider.currentUser;
+    final user = context.watch<AuthProvider>().currentUser;
+    final name = user?.name?.trim().isNotEmpty == true
+        ? user!.name!.trim()
+        : 'Agronomist';
+
+    final screens = [
+      AgronomistAdvisoryScreen(
+        metrics: _metrics,
+        nodes: _nodes,
+        liveAlert: _liveAlert,
+        isLoading: _isLoading,
+        metricsError: _metricsError,
+        nodesError: _nodesError,
+        onRefresh: _loadOverview,
+        onOpenSilos: () => setState(() => _selectedIndex = 1),
+        onOpenGuides: () => setState(() => _selectedIndex = 2),
+      ),
+      AgronomistSiloScreen(nodes: _nodes),
+      const AgronomistGuidePublisherScreen(),
+      const AgronomistAiSandboxScreen(),
+      const AgronomistProfileScreen(),
+    ];
 
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black.withOpacity(0.6),
-        elevation: 0,
-        toolbarHeight: 64,
-        flexibleSpace: ClipRRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
-            child: Container(color: Colors.transparent),
-          ),
-        ),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.psychology_rounded,
-                color: Colors.white,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 10),
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'AgroNexus',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  'Rag AgroAI',
-                  style: TextStyle(color: Colors.white70, fontSize: 11),
-                ),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Row(
-              children: [
-                SizedBox(
-                  width: 6,
-                  height: 6,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: Color(0xFF6CF8BB),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-                SizedBox(width: 6),
-                Text(
-                  'Agronomist / Expert',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout_rounded, color: Colors.white),
-            onPressed: () => authProvider.logout(),
-            tooltip: 'Sign Out',
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
+      backgroundColor: const Color(0xFF0B1320),
+      extendBody: true,
       body: Stack(
         children: [
           Positioned.fill(
             child: Image.network(
-              'https://img.freepik.com/premium-photo/agriculture-project-africa_943281-36244.jpg?w=2000',
+              _backgroundImage,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(color: const Color(0xFF0F382C)),
+              errorBuilder: (_, _, _) =>
+                  const ColoredBox(color: Color(0xFF16362B)),
             ),
           ),
-          _isLoading
-              ? const Center(
-                  child: CircularProgressIndicator(color: Colors.white),
-                )
-              : RefreshIndicator(
-                  onRefresh: _fetchMetrics,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
-                            child: Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.6),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.white.withOpacity(0.2)),
-                              ),
-                              child: Row(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 26,
-                                    backgroundColor: const Color(0xFF16A34A),
-                                    child: Text(
-                                      user?.name?.substring(0, 2).toUpperCase() ?? 'SN',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          user?.name ?? 'Dr. Samuel Ngu, Ph.D.',
-                                          style: const TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w900,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        const Text(
-                                          'Lead Post-Harvest Specialist • IRAD Cameroon',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.white70,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    const Color(0xD90B1320),
+                    const Color(0xC40B1320),
+                    const Color(0xEB0B1320),
+                  ],
                 ),
+              ),
+            ),
+          ),
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                _buildHeader(name, user?.role ?? 'AGRONOMIST'),
+                Expanded(
+                  child: IndexedStack(index: _selectedIndex, children: screens),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
+      bottomNavigationBar: _buildNavigationBar(),
     );
   }
+
+  Widget _buildHeader(String name, String role) => ClipRect(
+    child: BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+      child: Container(
+        height: 66,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: const Color(0xEE101A29),
+          border: Border(
+            bottom: BorderSide(
+              color: AgronomistPalette.border.withValues(alpha: 0.45),
+            ),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: AgronomistPalette.primary.withValues(alpha: 0.13),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.eco_rounded,
+                color: AgronomistPalette.primary,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'AgroNexus',
+                    style: TextStyle(
+                      color: AgronomistPalette.text,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  Text(
+                    '$name · ${role.toUpperCase()}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AgronomistPalette.muted,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              tooltip: 'Sign out',
+              onPressed: () => context.read<AuthProvider>().logout(),
+              icon: const Icon(
+                Icons.logout_rounded,
+                color: AgronomistPalette.muted,
+                size: 21,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
+  Widget _buildNavigationBar() => NavigationBar(
+    height: 68,
+    selectedIndex: _selectedIndex,
+    onDestinationSelected: (index) => setState(() => _selectedIndex = index),
+    backgroundColor: const Color(0xF2111925),
+    indicatorColor: AgronomistPalette.primary.withValues(alpha: 0.14),
+    labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+    destinations: const [
+      NavigationDestination(
+        icon: Icon(Icons.space_dashboard_outlined),
+        selectedIcon: Icon(Icons.space_dashboard_rounded),
+        label: 'Advisory',
+      ),
+      NavigationDestination(
+        icon: Icon(Icons.sensors_outlined),
+        selectedIcon: Icon(Icons.sensors_rounded),
+        label: 'Silos',
+      ),
+      NavigationDestination(
+        icon: Icon(Icons.menu_book_outlined),
+        selectedIcon: Icon(Icons.menu_book_rounded),
+        label: 'Guides',
+      ),
+      NavigationDestination(
+        icon: Icon(Icons.psychology_alt_outlined),
+        selectedIcon: Icon(Icons.psychology_alt_rounded),
+        label: 'AgroAI',
+      ),
+      NavigationDestination(
+        icon: Icon(Icons.person_outline_rounded),
+        selectedIcon: Icon(Icons.person_rounded),
+        label: 'Profile',
+      ),
+    ],
+  );
 }

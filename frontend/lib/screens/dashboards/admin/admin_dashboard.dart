@@ -1,12 +1,10 @@
-// lib/screens/dashboards/admin/admin_dashboard.dart
-import 'dart:convert';
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:http/http.dart' as http;
-import 'package:frontend/services/api_service.dart';
-import 'package:frontend/services/auth_provider.dart';
-import 'widgets/admin_user_card.dart';
+import 'admin_vault_screen.dart';
+import 'admin_disputes_screen.dart';
+import 'admin_operators_screen.dart';
+import 'admin_infra_screen.dart';
+import 'admin_profile_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -16,693 +14,82 @@ class AdminDashboard extends StatefulWidget {
 }
 
 class _AdminDashboardState extends State<AdminDashboard> {
-  bool _isLoading = true;
-  Map<String, dynamic> _metrics = {};
-  List<dynamic> _users = [];
-  String? _errorMessage;
+  int _currentIndex = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchAdminData();
-  }
-
-  Future<void> _fetchAdminData() async {
-    if (!mounted) return;
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-    try {
-      final userResponse = await ApiService.authenticatedRequest(
-        '/api/v1/admin/users',
-      );
-      final metricsResponse = await ApiService.authenticatedRequest(
-        '/api/v1/admin/metrics',
-      );
-      if (userResponse.statusCode != 200 || metricsResponse.statusCode != 200) {
-        throw StateError(
-          'Unable to load admin data '
-          '(users: ${userResponse.statusCode}, '
-          'metrics: ${metricsResponse.statusCode}).',
-        );
-      }
-      final users = jsonDecode(userResponse.body);
-      final metrics = jsonDecode(metricsResponse.body);
-      if (users is! List || metrics is! Map<String, dynamic>) {
-        throw const FormatException(
-          'The admin API returned an invalid response.',
-        );
-      }
-      if (mounted) {
-        setState(() {
-          _users = users;
-          _metrics = metrics;
-          _isLoading = false;
-        });
-      }
-    } catch (error) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = error.toString();
-        });
-      }
-    }
-  }
-
-  Future<void> _setUserVerification(
-    int userId,
-    String name,
-    bool shouldApprove,
-  ) async {
-    // Show a loading indicator in the SnackBar while the request is in-flight
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
-              const SizedBox(width: 12),
-              Text('${shouldApprove ? 'Approving' : 'De-approving'} $name...'),
-            ],
-          ),
-          duration: const Duration(seconds: 10),
-          backgroundColor: const Color(0xFF1e3a5f),
-        ),
-      );
-    }
-    try {
-      final response = await ApiService.authenticatedRequest(
-        '/api/v1/admin/${shouldApprove ? 'approve' : 'deapprove'}-user/$userId',
-        method: 'POST',
-      );
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '$name ${shouldApprove ? 'approved ✅' : 'de-approved ❌'} successfully! Email notification sent.',
-            ),
-            backgroundColor: const Color(0xFF16a34a),
-            duration: const Duration(seconds: 4),
-          ),
-        );
-        _fetchAdminData();
-      } else {
-        final body = jsonDecode(response.body);
-        final errorMsg = body is Map<String, dynamic>
-            ? body['error']?.toString() ?? 'Unable to update account status.'
-            : 'Server returned status ${response.statusCode}.';
-        _showErrorDialog(errorMsg);
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      _showErrorDialog(
-        'Could not reach the AgroNexus backend.\n\nMake sure the server is running on port 8080.\n\nDetails: ${e.toString().replaceAll("Exception: ", "")}',
-      );
-    }
-  }
-
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1a1a2e),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.error_outline_rounded, color: Colors.redAccent),
-            SizedBox(width: 8),
-            Text('Action Failed', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Text(message, style: const TextStyle(color: Colors.white70, fontSize: 13)),
-        actions: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF16a34a), foregroundColor: Colors.white),
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
+  final List<Widget> _screens = const [
+    AdminVaultScreen(),
+    AdminDisputesScreen(),
+    AdminOperatorsScreen(),
+    AdminInfraScreen(),
+    AdminProfileScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final auth = Provider.of<AuthProvider>(context);
-    final user = auth.currentUser;
-    final pendingCount = _users
-        .where((account) => account['isVerified'] == false)
-        .length;
-
-    final double escrowVolume = (_metrics['escrowVolume'] is num)
-        ? (_metrics['escrowVolume'] as num).toDouble()
-        : 0.0;
-    final String activeOrderCode = _metrics['activeOrderCode']?.toString() ?? 'ORD-LIVE-PENDING';
-
     return Scaffold(
-      backgroundColor: Colors.black,
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.black.withOpacity(0.6),
-        elevation: 0,
-        toolbarHeight: 64,
-        flexibleSpace: ClipRRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
-            child: Container(color: Colors.transparent),
-          ),
-        ),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.white.withOpacity(0.2)),
-              ),
-              child: const Icon(
-                Icons.admin_panel_settings_rounded,
-                color: Colors.white,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 10),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'AgroNexus',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    'Command Center',
-                    style: TextStyle(color: Colors.white70, fontSize: 11),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
+      backgroundColor: const Color(0xFF0B1326),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _screens,
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF131B2E).withValues(alpha: 0.92),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.4),
+              offset: const Offset(0, -4),
+              blurRadius: 24,
             ),
           ],
-        ),
-        actions: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.2)),
-            ),
-            child: const Row(
-              children: [
-                SizedBox(
-                  width: 6,
-                  height: 6,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: Color(0xFF6CF8BB),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-                SizedBox(width: 6),
-                Text(
-                  'Admin',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
-            onPressed: _fetchAdminData,
-            tooltip: 'Refresh data',
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout_rounded, color: Colors.white),
-            onPressed: () => auth.logout(),
-            tooltip: 'Sign out',
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: Image.network(
-              'https://img.freepik.com/premium-photo/agriculture-project-africa_943281-36244.jpg?w=2000',
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(color: const Color(0xFF0F382C)),
-            ),
-          ),
-          SafeArea(
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Colors.white),
-                  )
-                : _errorMessage != null
-                    ? _buildErrorState()
-                    : RefreshIndicator(
-                        onRefresh: _fetchAdminData,
-                        child: ListView(
-                          padding: const EdgeInsets.all(16),
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: BackdropFilter(
-                                filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
-                                child: Container(
-                                  padding: const EdgeInsets.all(20),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.6),
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(color: Colors.white.withOpacity(0.2)),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      CircleAvatar(
-                                        radius: 26,
-                                        backgroundColor: const Color(0xFF16A34A),
-                                        child: Text(
-                                          (user?.name?.isNotEmpty ?? false)
-                                              ? user!.name!.substring(0, 1).toUpperCase()
-                                              : 'A',
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 20,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 16),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              user?.name ?? 'System Administrator',
-                                              style: const TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.w900,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            const Text(
-                                              'Operations, trust & compliance control plane',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.white70,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 8),
-                                            const Row(
-                                              children: [
-                                                SizedBox(
-                                                  width: 7,
-                                                  height: 7,
-                                                  child: DecoratedBox(
-                                                    decoration: BoxDecoration(
-                                                      color: Color(0xFF6CF8BB),
-                                                      shape: BoxShape.circle,
-                                                    ),
-                                                  ),
-                                                ),
-                                                SizedBox(width: 6),
-                                                Text(
-                                                  'System mesh active',
-                                                  style: TextStyle(
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Color(0xFF6CF8BB),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildMetricCard(
-                                    'Locked Escrow',
-                                    '${escrowVolume.toStringAsFixed(2)} XAF',
-                                    Colors.greenAccent,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: _buildMetricCard(
-                                    'Vetting Queue',
-                                    '$pendingCount accounts',
-                                    Colors.orangeAccent,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildMetricCard(
-                                    'Users',
-                                    '${_metrics['userCount'] ?? 0}',
-                                    Colors.lightBlueAccent,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: _buildMetricCard(
-                                    'Products',
-                                    '${_metrics['productCount'] ?? 0}',
-                                    Colors.tealAccent,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: _buildMetricCard(
-                                    'Orders',
-                                    '${_metrics['orderCount'] ?? 0}',
-                                    Colors.purpleAccent,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            _buildMetricCard(
-                              'Telemetry Alerts',
-                              '${_metrics['telemetryAlertCount'] ?? 0}',
-                              Colors.redAccent,
-                            ),
-                            const SizedBox(height: 20),
-                            
-                            // ESCROW GOVERNANCE SETTLEMENT PANEL
-                            const Text(
-                              'Escrow Governance Settlement',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            AdminEscrowPanel(
-                              orderDetails: {
-                                'orderCode': activeOrderCode,
-                                'totalEscrowAmount': escrowVolume,
-                              },
-                              adminAuthToken: ApiService.globalAccessToken ?? '',
-                              adminUserId: user?.id?.toString() ?? '1',
-                            ),
-                            const SizedBox(height: 20),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'Account Verification',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                Text(
-                                  '$pendingCount pending',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.orangeAccent,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              'Review network access and manage account trust status.',
-                              style: TextStyle(fontSize: 12, color: Colors.white70),
-                            ),
-                            const SizedBox(height: 10),
-                            if (_users.isEmpty)
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
-                                child: BackdropFilter(
-                                  filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(24),
-                                    alignment: Alignment.center,
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withOpacity(0.6),
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: Colors.white.withOpacity(0.2)),
-                                    ),
-                                    child: const Column(
-                                      children: [
-                                        Icon(
-                                          Icons.verified_user_outlined,
-                                          size: 36,
-                                          color: Color(0xFF6CF8BB),
-                                        ),
-                                        SizedBox(height: 8),
-                                        Text(
-                                          'All accounts are up to date.',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              )
-                            else
-                              ..._users.map((account) => AdminUserCard(
-                                    user: account,
-                                    onStatusChanged: (userId, name, shouldApprove) =>
-                                        _setUserVerification(userId, name, shouldApprove),
-                                  )),
-                          ],
-                        ),
-                      ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorState() {
-    return Center(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            margin: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.6),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(0.2)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.cloud_off, size: 48, color: Colors.redAccent),
-                const SizedBox(height: 12),
-                const Text(
-                  'Admin data could not be loaded.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _errorMessage!,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white70),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: _fetchAdminData,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF16A34A),
-                    foregroundColor: Colors.white,
-                  ),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Retry'),
-                ),
-              ],
-            ),
+          border: const Border(
+            top: BorderSide(color: Color(0xFF171F33), width: 1),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildMetricCard(String title, String value, Color color) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.6),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withOpacity(0.2)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(fontSize: 11, color: Colors.white70),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: color,
+        child: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+            child: SafeArea(
+              child: SizedBox(
+                height: 64,
+                child: Row(
+                  children: [
+                    _buildNavItem(0, Icons.account_balance, 'Vault'),
+                    _buildNavItem(1, Icons.gavel, 'Disputes'),
+                    _buildNavItem(2, Icons.verified_user, 'Operators'),
+                    _buildNavItem(3, Icons.dns, 'Infra'),
+                    _buildNavItem(4, Icons.person, 'Profile'),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
-}
 
-class AdminEscrowPanel extends StatefulWidget {
-  final Map<String, dynamic> orderDetails;
-  final String adminAuthToken;
-  final String adminUserId;
-
-  const AdminEscrowPanel({
-    super.key,
-    required this.orderDetails,
-    required this.adminAuthToken,
-    required this.adminUserId,
-  });
-
-  @override
-  State<AdminEscrowPanel> createState() => _AdminEscrowPanelState();
-}
-
-class _AdminEscrowPanelState extends State<AdminEscrowPanel> {
-  bool _isProcessing = false;
-
-  Future<void> _processAdminEscrowRelease() async {
-    setState(() => _isProcessing = true);
-    final orderCode = widget.orderDetails['orderCode'];
-
-    try {
-      final response = await http.post(
-        Uri.parse('${ApiService.baseUrl}/api/v1/admin/escrow/release/$orderCode'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${widget.adminAuthToken}',
-          'X-Admin-User-Id': widget.adminUserId,
-        },
-      );
-
-      if (response.statusCode == 200) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Escrow successfully released: 85% Farmer / 15% Transporter split processed.'),
-            backgroundColor: Color(0xFF16A34A),
-          ),
-        );
-      } else {
-        String errorMessage = 'Server error (${response.statusCode})';
-        if (response.body.isNotEmpty) {
-          try {
-            final body = jsonDecode(response.body);
-            errorMessage = body['error'] ?? body['message'] ?? errorMessage;
-          } catch (_) {
-            errorMessage = response.body;
-          }
-        }
-        throw Exception(errorMessage);
-      }
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Action failed: $error'), backgroundColor: Colors.red),
-      );
-    } finally {
-      if (mounted) setState(() => _isProcessing = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final double total = (widget.orderDetails['totalEscrowAmount'] ?? 0.0).toDouble();
-    final double farmerSplit = total * 0.85;
-    final double transporterSplit = total * 0.15;
-    final String orderCode = widget.orderDetails['orderCode'] ?? 'N/A';
-
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
+  Widget _buildNavItem(int index, IconData icon, String label) {
+    final isSelected = _currentIndex == index;
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => _currentIndex = index),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
-              'Admin Escrow Governance & Settlement',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Icon(
+              icon,
+              size: 22,
+              color: isSelected ? const Color(0xFF4EDEA3) : const Color(0xFFBBCABF),
             ),
-            const Divider(),
-            Text('Order Reference: $orderCode'),
-            const SizedBox(height: 8),
-            Text('Total Pool Protected: ${total.toStringAsFixed(2)} XAF'),
-            Text('Calculated Farmer Share (85%): ${farmerSplit.toStringAsFixed(2)} XAF'),
-            Text('Calculated Transporter Share (15%): ${transporterSplit.toStringAsFixed(2)} XAF'),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1E3A8A),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                onPressed: (_isProcessing || total <= 0) ? null : _processAdminEscrowRelease,
-                child: _isProcessing
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                      )
-                    : Text(total <= 0 ? 'No Active Escrow Pool' : 'Authorize & Signoff Escrow Release'),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? const Color(0xFF4EDEA3) : const Color(0xFFBBCABF),
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                fontFamily: 'Inter',
               ),
             ),
           ],

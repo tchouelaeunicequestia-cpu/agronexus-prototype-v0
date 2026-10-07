@@ -1,8 +1,10 @@
 // lib/screens/register_screen.dart
 import 'package:flutter/material.dart';
+import 'dart:io';
 
 import '../services/api_service.dart';
 import '../services/platform_services.dart';
+import 'package:image_picker/image_picker.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -25,9 +27,12 @@ class _RegisterScreenState extends State<RegisterScreen>
   bool _obscurePassword = true;
   bool _isLocationCaptured = false;
   bool _isFaceScanned = false;
-  bool _isCniScanned = false; // Tracks physical CNI card photo scan
+  bool _isCniScanned = false;
   double? _lat;
   double? _lon;
+  XFile? _cniImage;
+  XFile? _faceImage;
+  final ImagePicker _picker = ImagePicker();
 
   late AnimationController _animController;
   late AnimationController _pulseController;
@@ -167,34 +172,39 @@ class _RegisterScreenState extends State<RegisterScreen>
   }
 
   Future<void> _handleCniScan() async {
-    bool isScanning = false;
+    XFile? capturedImage = _cniImage;
     bool scanComplete = _isCniScanned;
     String statusMessage = _isCniScanned
         ? 'National ID card photo captured & verified successfully!'
-        : 'Position your physical National ID / CNI card inside the camera frame.';
+        : 'Position your physical National ID / CNI card and tap capture.';
 
     await showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            void performCniScan() async {
-              setDialogState(() {
-                isScanning = true;
-                statusMessage = 'Capturing image & running OCR data extraction...';
-              });
+            Future<void> performCniCapture() async {
               try {
-                await Future.delayed(const Duration(seconds: 2)); // Simulated document scan delay
-                setDialogState(() {
-                  isScanning = false;
-                  scanComplete = true;
-                  statusMessage = 'National ID document verified successfully!';
-                });
+                final XFile? photo = await _picker.pickImage(
+                  source: ImageSource.camera,
+                  preferredCameraDevice: CameraDevice.rear,
+                  imageQuality: 85,
+                );
+                if (photo != null) {
+                  setDialogState(() {
+                    capturedImage = photo;
+                    scanComplete = true;
+                    statusMessage = 'National ID document captured! Review the preview below.';
+                  });
+                } else {
+                  setDialogState(() {
+                    statusMessage = 'Capture cancelled. Try again.';
+                  });
+                }
               } catch (e) {
                 setDialogState(() {
-                  isScanning = false;
                   scanComplete = false;
-                  statusMessage = 'Scan failed. Please ensure adequate lighting.';
+                  statusMessage = 'Camera error: ${e.toString().replaceAll("Exception: ", "")}';
                 });
               }
             }
@@ -243,45 +253,38 @@ class _RegisterScreenState extends State<RegisterScreen>
                       ),
                       const SizedBox(height: 24),
                       Container(
-                        height: 140,
-                        width: 220,
+                        height: 180,
+                        width: 280,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
                           color: const Color(0xFF002615),
                           border: Border.all(
                             color: scanComplete
                                 ? const Color(0xFF16a34a)
-                                : isScanning
-                                ? const Color(0xFFD97706)
                                 : const Color(0xFF6cf8bb),
                             width: 3,
                           ),
                         ),
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            if (isScanning)
-                              const CircularProgressIndicator(
-                                color: Color(0xFF6cf8bb),
-                                strokeWidth: 3,
-                              )
-                            else if (scanComplete)
-                              const Icon(
-                                Icons.check_circle_outline_rounded,
-                                color: Colors.greenAccent,
-                                size: 56,
-                              )
-                            else
-                              const Icon(
-                                Icons.credit_card_rounded,
-                                color: Color(0xFF81c784),
-                                size: 56,
-                              ),
-                          ],
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(9),
+                          child: capturedImage != null
+                              ? Image.file(
+                                  File(capturedImage!.path),
+                                  fit: BoxFit.cover,
+                                  width: 280,
+                                  height: 180,
+                                )
+                              : const Center(
+                                  child: Icon(
+                                    Icons.credit_card_rounded,
+                                    color: Color(0xFF81c784),
+                                    size: 56,
+                                  ),
+                                ),
                         ),
                       ),
                       const SizedBox(height: 24),
-                      if (!scanComplete && !isScanning)
+                      if (!scanComplete)
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF0f5132),
@@ -294,9 +297,22 @@ class _RegisterScreenState extends State<RegisterScreen>
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          onPressed: performCniScan,
+                          onPressed: performCniCapture,
                           icon: const Icon(Icons.camera_alt_rounded),
-                          label: const Text('Capture ID Photo'),
+                          label: const Text('Open Camera'),
+                        ),
+                      if (scanComplete)
+                        TextButton.icon(
+                          onPressed: () async {
+                            setDialogState(() {
+                              scanComplete = false;
+                              capturedImage = null;
+                              statusMessage = 'Position your ID card and tap capture.';
+                            });
+                          },
+                          icon: const Icon(Icons.refresh, color: Color(0xFF0f5132)),
+                          label: const Text('Retake Photo',
+                              style: TextStyle(color: Color(0xFF0f5132))),
                         ),
                     ],
                   ),
@@ -320,7 +336,10 @@ class _RegisterScreenState extends State<RegisterScreen>
                   ),
                   onPressed: scanComplete
                       ? () {
-                          setState(() => _isCniScanned = true);
+                          setState(() {
+                            _isCniScanned = true;
+                            _cniImage = capturedImage;
+                          });
                           Navigator.pop(dialogContext);
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -342,39 +361,39 @@ class _RegisterScreenState extends State<RegisterScreen>
   }
 
   Future<void> _handleBiometricScan() async {
-    bool isScanning = false;
+    XFile? capturedFace = _faceImage;
     bool scanComplete = _isFaceScanned;
     String statusMessage = _isFaceScanned
         ? 'Biometric identity verified successfully!'
-        : 'Position your face inside the biometric verification frame.';
+        : 'Position your face in frame and tap capture.';
 
     await showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            void performScan() async {
-              setDialogState(() {
-                isScanning = true;
-                statusMessage = 'Analyzing facial geometry & sensor hash...';
-              });
+            Future<void> performFaceCapture() async {
               try {
-                final identityService = IdentityServiceFactory.getService();
-                bool verified = await identityService.verifyFaceOrBiometric();
-                if (verified) {
+                final XFile? photo = await _picker.pickImage(
+                  source: ImageSource.camera,
+                  preferredCameraDevice: CameraDevice.front,
+                  imageQuality: 85,
+                );
+                if (photo != null) {
                   setDialogState(() {
-                    isScanning = false;
+                    capturedFace = photo;
                     scanComplete = true;
-                    statusMessage = 'Biometric identity verified successfully!';
+                    statusMessage = 'Face captured! Review your photo below.';
                   });
                 } else {
-                  throw Exception('Biometric identity match failed.');
+                  setDialogState(() {
+                    statusMessage = 'Capture cancelled. Try again.';
+                  });
                 }
               } catch (e) {
                 setDialogState(() {
-                  isScanning = false;
                   scanComplete = false;
-                  statusMessage = e.toString().replaceAll("Exception: ", "");
+                  statusMessage = 'Camera error: ${e.toString().replaceAll("Exception: ", "")}';
                 });
               }
             }
@@ -423,49 +442,37 @@ class _RegisterScreenState extends State<RegisterScreen>
                       ),
                       const SizedBox(height: 24),
                       Container(
-                        height: 150,
-                        width: 150,
+                        height: 180,
+                        width: 180,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: const Color(0xFF002615),
                           border: Border.all(
                             color: scanComplete
                                 ? const Color(0xFF16a34a)
-                                : isScanning
-                                ? const Color(0xFFD97706)
                                 : const Color(0xFF6cf8bb),
                             width: 3,
                           ),
                         ),
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            if (isScanning)
-                              const SizedBox(
-                                width: 130,
-                                height: 130,
-                                child: CircularProgressIndicator(
-                                  color: Color(0xFF6cf8bb),
-                                  strokeWidth: 3,
+                        child: ClipOval(
+                          child: capturedFace != null
+                              ? Image.file(
+                                  File(capturedFace!.path),
+                                  fit: BoxFit.cover,
+                                  width: 180,
+                                  height: 180,
+                                )
+                              : const Center(
+                                  child: Icon(
+                                    Icons.face_rounded,
+                                    color: Color(0xFF81c784),
+                                    size: 68,
+                                  ),
                                 ),
-                              )
-                            else if (scanComplete)
-                              const Icon(
-                                Icons.check_circle_outline_rounded,
-                                color: Colors.greenAccent,
-                                size: 68,
-                              )
-                            else
-                              const Icon(
-                                Icons.face_rounded,
-                                color: Color(0xFF81c784),
-                                size: 68,
-                              ),
-                          ],
                         ),
                       ),
                       const SizedBox(height: 24),
-                      if (!scanComplete && !isScanning)
+                      if (!scanComplete)
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF0f5132),
@@ -478,9 +485,22 @@ class _RegisterScreenState extends State<RegisterScreen>
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          onPressed: performScan,
+                          onPressed: performFaceCapture,
                           icon: const Icon(Icons.camera_front_rounded),
-                          label: const Text('Start Facial Scan'),
+                          label: const Text('Open Front Camera'),
+                        ),
+                      if (scanComplete)
+                        TextButton.icon(
+                          onPressed: () async {
+                            setDialogState(() {
+                              scanComplete = false;
+                              capturedFace = null;
+                              statusMessage = 'Position your face and tap capture.';
+                            });
+                          },
+                          icon: const Icon(Icons.refresh, color: Color(0xFF0f5132)),
+                          label: const Text('Retake Selfie',
+                              style: TextStyle(color: Color(0xFF0f5132))),
                         ),
                     ],
                   ),
@@ -504,7 +524,10 @@ class _RegisterScreenState extends State<RegisterScreen>
                   ),
                   onPressed: scanComplete
                       ? () {
-                          setState(() => _isFaceScanned = true);
+                          setState(() {
+                            _isFaceScanned = true;
+                            _faceImage = capturedFace;
+                          });
                           Navigator.pop(dialogContext);
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -596,6 +619,8 @@ class _RegisterScreenState extends State<RegisterScreen>
         role: _selectedRole!,
         latitude: _lat,
         longitude: _lon,
+        cniImage: _cniImage,
+        faceImage: _faceImage,
       );
       final contactsVerified = await _verifyContactChannels();
       if (!contactsVerified) return;
@@ -1257,11 +1282,15 @@ class _RegisterScreenState extends State<RegisterScreen>
                     : const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(
-                            'Complete Verification & Enroll',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
+                          Flexible(
+                            child: Text(
+                              'Complete Verification & Enroll',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
                             ),
                           ),
                           SizedBox(width: 8),

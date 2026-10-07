@@ -1,0 +1,5 @@
+Visually verify every screen in the running Flutter app.
+Add a backend-driven list of available telemetry nodes instead of requiring manual node ID entry.
+Add telemetry charts if the backend provides enough historical data.
+Connect actual image upload behavior to AgroAI if backend support is added.
+Run broader integration tests.

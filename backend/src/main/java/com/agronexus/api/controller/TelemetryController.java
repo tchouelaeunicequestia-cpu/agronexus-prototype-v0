@@ -1,11 +1,15 @@
 package com.agronexus.api.controller;
 
 import com.agronexus.api.entity.TelemetryLog;
+import com.agronexus.api.entity.ActuatorCommand;
+import com.agronexus.api.entity.User;
+import com.agronexus.api.repository.ActuatorCommandRepository;
 import com.agronexus.api.repository.TelemetryLogRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -29,20 +33,32 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class TelemetryController {
 
     private final TelemetryLogRepository telemetryLogRepository;
+    private final ActuatorCommandRepository actuatorCommandRepository;
     private final CopyOnWriteArrayList<SseEmitter> alertSubscribers =
             new CopyOnWriteArrayList<>();
 
-    public TelemetryController(TelemetryLogRepository telemetryLogRepository) {
+    public TelemetryController(
+            TelemetryLogRepository telemetryLogRepository,
+            ActuatorCommandRepository actuatorCommandRepository) {
         this.telemetryLogRepository = telemetryLogRepository;
+        this.actuatorCommandRepository = actuatorCommandRepository;
     }
 
     // POST /api/v1/telemetry — ESP32 Sensor Hardware Payload Ingestion
     @PostMapping
     public ResponseEntity<?> ingestTelemetry(@RequestBody Map<String, Object> payload) {
-        String nodeId = (String) payload.get("nodeId");
-        Float temp = ((Number) payload.get("temp")).floatValue();
-        Float humidity = ((Number) payload.get("humidity")).floatValue();
-        Integer gas = ((Number) payload.get("gas")).intValue();
+        Object nodeIdValue = payload.get("nodeId");
+        Number temperatureValue = firstNumber(payload, "temperature", "temp");
+        Number humidityValue = firstNumber(payload, "humidity");
+        Number gasValue = firstNumber(payload, "gasLevel", "gas");
+        if (!(nodeIdValue instanceof String nodeId) || nodeId.isBlank()
+                || temperatureValue == null || humidityValue == null || gasValue == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "nodeId is required, along with numeric temperature, humidity, and gasLevel values."));
+        }
+        Float temp = temperatureValue.floatValue();
+        Float humidity = humidityValue.floatValue();
+        Integer gas = gasValue.intValue();
 
         // Safety Threshold Evaluation (FAO Crop Storage Standards)
         boolean alert = temp > 30.0f || humidity > 85.0f || gas > 400;
@@ -62,6 +78,16 @@ public class TelemetryController {
             publishAlert(saved);
         }
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    }
+
+    private static Number firstNumber(Map<String, Object> payload, String... keys) {
+        for (String key : keys) {
+            Object value = payload.get(key);
+            if (value instanceof Number number) {
+                return number;
+            }
+        }
+        return null;
     }
 
     @GetMapping(value = "/alerts/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -87,6 +113,60 @@ public class TelemetryController {
     @GetMapping("/node/{nodeId}")
     public ResponseEntity<List<TelemetryLog>> getNodeLogs(@PathVariable String nodeId) {
         return ResponseEntity.ok(telemetryLogRepository.findTop50ByNodeIdOrderByRecordedAtDesc(nodeId));
+    }
+
+    @GetMapping("/nodes")
+    @PreAuthorize("hasRole('AGRONOMIST')")
+    public ResponseEntity<List<TelemetryLog>> getNodes() {
+        List<TelemetryLog> nodes = telemetryLogRepository.findDistinctNodeIds().stream()
+                .map(telemetryLogRepository::findTopByNodeIdOrderByRecordedAtDesc)
+                .filter(log -> log != null)
+                .toList();
+        return ResponseEntity.ok(nodes);
+    }
+
+    @GetMapping("/actuator-commands")
+    @PreAuthorize("hasRole('AGRONOMIST')")
+    public ResponseEntity<List<Map<String, Object>>> getActuatorCommands() {
+        return ResponseEntity.ok(actuatorCommandRepository.findAllByOrderByCreatedAtDesc()
+                .stream()
+                .map(TelemetryController::commandResponse)
+                .toList());
+    }
+
+    @PostMapping("/nodes/{nodeId}/commands")
+    @PreAuthorize("hasRole('AGRONOMIST')")
+    public ResponseEntity<?> createActuatorCommand(
+            @PathVariable String nodeId,
+            @RequestBody Map<String, String> request,
+            @AuthenticationPrincipal User user) {
+        String action = request.get("action");
+        if (!"AERATION_START".equals(action) && !"UV_DECONTAMINATION".equals(action)) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Action must be AERATION_START or UV_DECONTAMINATION."));
+        }
+        if (!telemetryLogRepository.existsByNodeId(nodeId)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                    "error", "No telemetry node was found with ID " + nodeId + "."));
+        }
+
+        ActuatorCommand command = ActuatorCommand.builder()
+                .nodeId(nodeId)
+                .action(action)
+                .status("PENDING_DEVICE")
+                .requestedBy(user.getEmail())
+                .build();
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(commandResponse(actuatorCommandRepository.save(command)));
+    }
+
+    private static Map<String, Object> commandResponse(ActuatorCommand command) {
+        return Map.of(
+                "id", command.getId(),
+                "nodeId", command.getNodeId(),
+                "action", command.getAction(),
+                "status", command.getStatus(),
+                "createdAt", command.getCreatedAt());
     }
 
     private void publishAlert(TelemetryLog alert) {

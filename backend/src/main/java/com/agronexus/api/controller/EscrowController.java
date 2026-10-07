@@ -4,6 +4,7 @@ package com.agronexus.api.controller;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.agronexus.api.entity.Order;
+import com.agronexus.api.entity.Role;
 import com.agronexus.api.entity.User;
 import com.agronexus.api.model.EscrowTransaction;
 import com.agronexus.api.repository.EscrowRepository;
@@ -98,26 +100,48 @@ public class EscrowController {
                 .collect(Collectors.toList()));
     }
 
+    @GetMapping("/farmer/orders")
+    @PreAuthorize("hasRole('FARMER')")
+    public ResponseEntity<List<Map<String, Object>>> getFarmerOrders(
+            @AuthenticationPrincipal User farmer) {
+        return ResponseEntity.ok(orderRepository.findByProductFarmerId(farmer.getId()).stream()
+                .map(this::orderSummary)
+                .collect(Collectors.toList()));
+    }
+
     private Map<String, Object> orderSummary(Order order) {
-        return Map.of(
-                "orderCode", order.getOrderCode(),
-                "productTitle", order.getProduct().getTitle(),
-                "quantity", order.getQuantity(),
-                "itemCost", order.getItemCost(),
-                "transportFee", order.getTransportFee(),
-                "platformServiceFee", order.getDepositBuffer(),
-                // Retained for clients using the original response contract.
-                "depositBuffer", order.getDepositBuffer(),
-                "deliveryAddress", order.getDeliveryAddress(),
-                "status", order.getEscrowStatus().name());
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("id", order.getId());
+        summary.put("orderCode", order.getOrderCode());
+        summary.put("productTitle", order.getProduct() == null
+                ? "Unavailable"
+                : order.getProduct().getTitle());
+        summary.put("quantity", order.getQuantity());
+        summary.put("itemCost", order.getItemCost());
+        summary.put("transportFee", order.getTransportFee());
+        summary.put("platformServiceFee", order.getDepositBuffer());
+        summary.put("totalEscrowAmount", order.getTotalEscrowAmount());
+        // Retained for clients using the original response contract.
+        summary.put("depositBuffer", order.getDepositBuffer());
+        summary.put("deliveryAddress", order.getDeliveryAddress());
+        summary.put("status", order.getEscrowStatus() == null
+                ? "UNKNOWN"
+                : order.getEscrowStatus().name());
+        return summary;
     }
 
     @PostMapping("/initialize")
     @PreAuthorize("hasRole('BUYER')")
-    public ResponseEntity<?> initializeEscrowPayment(@RequestBody Map<String, Object> payload) {
+    public ResponseEntity<?> initializeEscrowPayment(
+            @RequestBody Map<String, Object> payload,
+            @AuthenticationPrincipal User buyer) {
         try {
             Long buyerId = Long.valueOf(payload.get("buyerId").toString());
             Long farmerId = Long.valueOf(payload.get("farmerId").toString());
+            if (buyer == null || buyer.getId() == null || !buyer.getId().equals(buyerId)) {
+                return ResponseEntity.status(403).body(Map.of(
+                        "error", "The authenticated buyer must initialize escrow for their own account."));
+            }
             BigDecimal amount = new BigDecimal(payload.get("amount").toString());
             String providerStr = payload.get("provider").toString(); // MTN_MOMO, ORANGE_MONEY, BANK_ACCOUNT
             String phoneOrAccount = payload.get("payerPhoneOrAccount").toString();
@@ -149,9 +173,27 @@ public class EscrowController {
 
     @PostMapping("/release/{reference}")
     @PreAuthorize("hasRole('FARMER') or hasRole('AGRONOMIST')")
-    public ResponseEntity<?> releaseEscrow(@PathVariable String reference) {
+    public ResponseEntity<?> releaseEscrow(
+            @PathVariable String reference,
+            @AuthenticationPrincipal User actor) {
         EscrowTransaction tx = escrowRepository.findByTransactionReference(reference)
-            .orElseThrow(() -> new RuntimeException("Escrow transaction not found."));
+            .orElse(null);
+        if (tx == null) {
+            return ResponseEntity.status(404).body(Map.of(
+                    "error", "Escrow transaction not found."));
+        }
+        if (actor == null || actor.getId() == null) {
+            return ResponseEntity.status(403).body(Map.of(
+                    "error", "An authenticated user is required."));
+        }
+        if (actor.getRole() == Role.FARMER && !actor.getId().equals(tx.getFarmerId())) {
+            return ResponseEntity.status(403).body(Map.of(
+                    "error", "Only the farmer assigned to this escrow can release it."));
+        }
+        if (tx.getStatus() != EscrowTransaction.EscrowStatus.LOCKED_IN_ESCROW) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Only funds locked in escrow can be released."));
+        }
 
         tx.setStatus(EscrowTransaction.EscrowStatus.RELEASED_TO_FARMER);
         tx.setUpdatedAt(LocalDateTime.now());

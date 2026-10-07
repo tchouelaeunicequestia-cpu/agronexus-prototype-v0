@@ -169,6 +169,8 @@ public class AdminController {
         
         payload.put("biometricVerified", user.getBiometricVerified() != null ? user.getBiometricVerified() : false);
         payload.put("cniVerified", user.getCniVerified() != null ? user.getCniVerified() : false);
+        payload.put("cniImagePath", user.getCniImagePath());
+        payload.put("faceImagePath", user.getFaceImagePath());
         payload.put("identityVerified", user.getIdentityVerified() != null ? user.getIdentityVerified() : false);
         payload.put("isVerified", user.getIsVerified() != null ? user.getIsVerified() : false);
         payload.put("createdAt", user.getCreatedAt() != null ? user.getCreatedAt().toString() : "2026-01-01");

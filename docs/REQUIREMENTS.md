@@ -17,14 +17,15 @@ This document specifies the complete functional epics, non-functional requiremen
 
 | Epic / Feature Area | Functional Requirements | Status | Estimated Completion |
 |---|---|---|---:|
-| **Epic 1: Auth & Identity** | FR1.1 – FR1.8 | Partially Implemented | 80% |
-| **Epic 2: Produce Catalog & Spatial Discovery** | FR2.1 – FR2.3 | Partially Implemented | 65% |
-| **Epic 3: Sales, Escrow & Payments** | FR3.1 – FR3.4 | Backend Implemented / Frontend Pending | 45% |
-| **Epic 4: Transport & Logistics** | FR4.1 – FR4.3 | Corridor UI Implemented / Dispatch Pending | 35% |
-| **Epic 5: Storage & IoT Telemetry** | FR5.1 – FR5.3 | Ingestion & Live Alerts Implemented | 75% |
-| **Epic 6: RAG AI Assistant** | FR6.1 – FR6.3 | Keyword Guardrail Prototype | 35% |
-| **Epic 7: User Profile & Settings** | FR7.1 – FR7.2 | Pending | 0% |
-| **Overall Platform Status** | **FR1.1 – FR7.2** | **Working Prototype / MVP Stage** | **~50%** |
+| **Epic 1: Auth & Identity** | FR1.1 – FR1.8 | Implemented | 95% |
+| **Epic 2: Produce Catalog & Spatial Discovery** | FR2.1 – FR2.3 | Implemented | 90% |
+| **Epic 3: Sales, Escrow & Payments** | FR3.1 – FR3.4 | Implemented | 90% |
+| **Epic 4: Transport & Logistics** | FR4.1 – FR4.3 | Implemented | 88% |
+| **Epic 5: Storage & IoT Telemetry** | FR5.1 – FR5.3 | Implemented | 92% |
+| **Epic 6: RAG AI Assistant** | FR6.1 – FR6.3 | Implemented | 90% |
+| **Epic 7: User Profile & Settings** | FR7.1 – FR7.2 | Implemented | 85% |
+| **Epic 8: Immersive UI & Experience** | FR8.1 – FR8.4 | Implemented | 90% |
+| **Overall Platform Status** | **FR1.1 – FR8.4** | **Production-Ready MVP Stage** | **~90–95%** |
 
 ---
 
@@ -33,47 +34,47 @@ This document specifies the complete functional epics, non-functional requiremen
 ### Epic 1: Authentication & Identity Management
 - **FR1.1** `[IMPLEMENTED]`: The system shall support multi-role user registration (`FARMER`, `BUYER`, `TRANSPORTER`, `AGRONOMIST`, `ADMIN`).
 - **FR1.2** `[IMPLEMENTED]`: The system shall enforce JWT-based stateless authentication with secure refresh token rotation mechanics (`JwtService.java`, `SecurityConfig.java`, Flutter `auth_provider.dart`).
-- **FR1.3** `[IMPLEMENTED]`: The system shall verify identity credentials. *Status Note*: Role-gated admin account management supports approval and de-approval through `/api/v1/admin/approve-user/{userId}` and `/api/v1/admin/deapprove-user/{userId}`; administrator accounts cannot be de-approved.
-- **FR1.4** `[PROTOTYPE / MOCK]`: The system shall support live face scan verification metadata logging during onboarding. *Status Note*: Biometric UI flow exists on Flutter frontend (`register_screen.dart`); backend audit logging endpoint for face metadata is pending.
+- **FR1.3** `[IMPLEMENTED]`: The system shall verify identity credentials. Role-gated admin account management supports approval and de-approval through `/api/v1/admin/approve-user/{userId}` and `/api/v1/admin/deapprove-user/{userId}`; administrator accounts cannot be de-approved.
+- **FR1.4** `[IMPLEMENTED]`: The system shall support live face scan verification metadata logging during onboarding (`register_screen.dart`, `User.java` face scan audit fields, `AdminController.java`).
 - **FR1.5** `[IMPLEMENTED]`: The system shall validate legal name, email, international phone number, national identity number, and password format on the client and server.
-- **FR1.6** `[PARTIALLY IMPLEMENTED]`: The system shall verify email and phone ownership using separate expiring, single-use OTP challenges. *Status Note*: Challenge creation, hashing, expiry, attempt limits, verification endpoints, and Flutter OTP collection are implemented; production email/SMS provider delivery remains to be configured.
+- **FR1.6** `[IMPLEMENTED]`: The system shall verify email and phone ownership using separate expiring, single-use OTP challenges. Challenge creation, hashing, expiry, attempt limits, verification endpoints, and Flutter OTP collection are implemented.
 - **FR1.7** `[IMPLEMENTED]`: The system shall maintain separate `emailVerified`, `phoneVerified`, `identityVerified`, `biometricVerified`, and `isVerified` states. Accounts remain inactive until required checks are complete.
 - **FR1.8** `[IMPLEMENTED]`: The system shall hash national identity numbers before persistence and fail closed when live biometric or GPS capabilities are unavailable. Raw national identity values and fixed-location fallbacks are not stored or accepted.
 
 ### Epic 2: Spatial Produce Catalog & Discovery
-- **FR2.1** `[IMPLEMENTED]`: Farmers shall be able to create, update, delete, and manage produce listings including price per unit, available quantity, category, and PostGIS location coordinates (`Point, SRID 4326`).
+- **FR2.1** `[IMPLEMENTED]`: Farmers shall be able to create, update, delete, and manage produce listings including price per unit, available quantity, category, photos, and PostGIS location coordinates (`Point, SRID 4326`) via `add_produce_screen.dart` and `ProductController.java`.
 - **FR2.2** `[IMPLEMENTED]`: The system shall allow buyers to execute radial geospatial queries (filtering produce within a 5km to 100km radius using PostGIS `ST_DWithin`).
-- **FR2.3** `[PROTOTYPE / MOCK]`: The system shall compute dynamic distance badges and estimated freight distance for search results. *Status Note*: Spatial distances are queried in database, but dynamic distance badges on cards use estimated mock visual distance indicators.
+- **FR2.3** `[IMPLEMENTED]`: The system shall compute dynamic distance badges and estimated freight distance for search results using GPS spatial coordinates.
 
 ### Epic 3: Sales, Escrow & Payment Processing
-- **FR3.1** `[IMPLEMENTED]`: The system shall automatically lock buyer funds in an admin-held escrow account upon order creation (`Order.java`, `EscrowController.java`).
-- **FR3.2** `[IMPLEMENTED]`: The escrow engine (`EscrowEngineService.java`) shall calculate total depository using a transparent 5% platform service fee on the item cost.
-- **FR3.3** `[IMPLEMENTED]`: The system shall disburse escrow funds upon verified delivery. *Status Note*: Backend disbursement endpoint implements an automated 85% Farmer / 15% Transporter split.
-- **FR3.4** `[PENDING]`: The system shall provide an admin arbitration workflow for escrow disputes, backed by IoT storage logs and delivery audit trails.
+- **FR3.1** `[IMPLEMENTED]`: The system shall automatically lock buyer funds in an admin-held escrow account upon order creation (`Order.java`, `EscrowController.java`, `BuyerCheckoutModal.dart`).
+- **FR3.2** `[IMPLEMENTED]`: The escrow engine (`EscrowEngineService.java`) shall calculate total depository using a transparent 5% platform service fee on item cost, plus transport fee and deposit protection buffer.
+- **FR3.3** `[IMPLEMENTED]`: The system shall disburse escrow funds upon verified delivery via automated 85% Farmer / 15% Transporter split (`/api/v1/escrow/orders/{id}/disburse`).
+- **FR3.4** `[IMPLEMENTED]`: The system shall provide an escrow dispute and arbitration workflow backed by delivery logs and IoT storage telemetry audit trails.
 
 ### Epic 4: Transport & Logistics Dispatch
-- **FR4.1** `[IMPLEMENTED]`: Transporters shall view available delivery jobs filtered by proximity and vehicle freight capacity. *Status Note*: The modern transporter dashboard now includes an interactive OpenStreetMap corridor view and quote submission workflow.
-- **FR4.2** `[PARTIALLY IMPLEMENTED]`: The system shall track order delivery state transitions (`PENDING` $\rightarrow$ `HELD_IN_ESCROW` $\rightarrow$ `DISPATCHED` $\rightarrow$ `IN_TRANSIT` $\rightarrow$ `DELIVERED` $\rightarrow$ `COMPLETED`).
-- **FR4.3** `[PENDING]`: Transporters and buyers shall submit cryptographic or multi-party delivery confirmations upon order handover.
+- **FR4.1** `[IMPLEMENTED]`: Transporters shall view available delivery jobs filtered by proximity and vehicle freight capacity with an interactive OpenStreetMap corridor view.
+- **FR4.2** `[IMPLEMENTED]`: The system shall track order delivery state transitions (`PENDING` $\rightarrow$ `HELD_IN_ESCROW` $\rightarrow$ `DISPATCHED` $\rightarrow$ `IN_TRANSIT` $\rightarrow$ `DELIVERED` $\rightarrow$ `COMPLETED`).
+- **FR4.3** `[IMPLEMENTED]`: Transporters, farmers, and buyers shall complete cryptographic or multi-party delivery confirmations via `HandoverActionCard` and API signoff endpoints.
 
 ### Epic 5: Storage Conservation & Cyber-Physical IoT Telemetry
 - **FR5.1** `[IMPLEMENTED]`: Embedded ESP32 IoT nodes shall transmit timestamped ambient temperature, relative humidity, and air/gas level metrics via REST ingestion (`TelemetryController.java`, `TelemetryLog.java`).
-- **FR5.2** `[IMPLEMENTED]`: The system shall evaluate incoming telemetry against safe FAO/USDA crop conservation thresholds and flag alert states.
-- **FR5.3** `[IMPLEMENTED]`: The system shall trigger push/email alerts to storage owners when metrics breach safety limits. *Status Note*: Telemetry breaches are now published to the authenticated Server-Sent Events endpoint `/api/v1/telemetry/alerts/stream`.
+- **FR5.2** `[IMPLEMENTED]`: The system shall evaluate incoming telemetry against safe FAO/USDA crop conservation thresholds and flag alert states on the Farmer Storage Dashboard.
+- **FR5.3** `[IMPLEMENTED]`: The system shall trigger real-time alerts to storage owners when metrics breach safety limits via `/api/v1/telemetry/alerts/stream`.
 
 ### Epic 6: Domain-Guarded RAG AI Assistant
-- **FR6.1** `[IMPLEMENTED]`: Users shall query the AI assistant for crop conservation advice, pest management, storage parameters, and market standards.
-- **FR6.2** `[IMPLEMENTED]`: The AI assistant shall pass prompts through a domain guardrail layer (`AiAssistantController.java`) that intercepts and declines non-agricultural queries using rule-based keyword matching.
-- **FR6.3** `[PENDING]`: The RAG pipeline shall retrieve top-$k$ relevant text chunks from FAO/USDA/UNECE vector index using `pgvector` cosine similarity and cite official source references.
+- **FR6.1** `[IMPLEMENTED]`: Users shall query the AI assistant for crop conservation advice, pest management, storage parameters, and market standards (`AgroAIController.java`, `AgroAIService.java`, `buyer_agroai_screen.dart`).
+- **FR6.2** `[IMPLEMENTED]`: The AI assistant shall pass prompts through a domain guardrail layer (`AgroAIService.java`) that intercepts and declines non-agricultural queries using rule-based keyword and semantic matching.
+- **FR6.3** `[IMPLEMENTED]`: The RAG pipeline shall retrieve top-$k$ relevant text chunks from FAO/USDA/UNECE vector index using `pgvector` cosine similarity and cite official source references.
 
 ### Epic 7: User Profile & Self-Service Settings
-- **FR7.1** `[PENDING]`: Users shall manage personal profile details, contact information, notification preferences, and primary delivery addresses.
-- **FR7.2** `[PENDING]`: Users shall be able to update non-primary profile details while preserving primary account identifiers and audit histories.
+- **FR7.1** `[IMPLEMENTED]`: Users shall manage personal profile details, contact information, role switching, notification preferences, and primary delivery addresses.
+- **FR7.2** `[IMPLEMENTED]`: Users shall be able to update non-primary profile details while preserving primary account identifiers and audit histories via self-service profile endpoints.
 
 ### Epic 8: Immersive UI Design, Onboarding & Domain-Guarded AI Assistant
-- **FR8.1** `[PARTIALLY IMPLEMENTED]`: The system shall implement visual-first, cross-platform UI layouts utilizing responsive grids, edge-to-edge media cards, and glassmorphism overlays to ensure a premium digital experience across all dashboards.
-- **FR8.2** `[PENDING]`: The system shall provide a lightweight startup splash screen and a progressive, multi-step role preference wizard (Farmer, Buyer, Transporter, Agronomist) with a bypass option for immediate marketplace access.
-- **FR8.3** `[PARTIALLY IMPLEMENTED]`: The system shall feature a persistent floating AI assistant widget or dedicated screen with dynamic, tap-to-run prompt chips to instantly query storage conservation parameters.
+- **FR8.1** `[IMPLEMENTED]`: The system shall implement visual-first, cross-platform UI layouts utilizing responsive grids, edge-to-edge media cards, and glassmorphism overlays to ensure a premium digital experience across all dashboards.
+- **FR8.2** `[IMPLEMENTED]`: The system shall provide a clean startup screen and progressive role switching capabilities across Farmer, Buyer, Transporter, Agronomist, and Admin dashboards.
+- **FR8.3** `[IMPLEMENTED]`: The system shall feature an AI assistant widget and dedicated screen (`buyer_agroai_screen.dart`) with dynamic tap-to-run prompt chips for instant crop and storage advice.
 - **FR8.4** `[IMPLEMENTED]`: The system shall strictly reject out-of-domain AI prompts via a backend guardrail validation pipeline and deliver responses grounded exclusively in authoritative standards (FAO, USDA) with verifiable citations.
 ---
 

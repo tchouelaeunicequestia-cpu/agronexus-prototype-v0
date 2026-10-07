@@ -6,12 +6,13 @@ import 'package:provider/provider.dart';
 
 import 'package:frontend/services/api_service.dart';
 import 'package:frontend/services/auth_provider.dart';
-import 'package:frontend/services/draft_service.dart';
 import 'package:frontend/services/platform_services.dart';
+
 import 'buyer_quote_section.dart';
 import 'buyer_escrow_screen.dart';
 import 'buyer_telemetry_screen.dart';
 import 'buyer_agroai_screen.dart';
+import 'buyer_profile_screen.dart';
 
 class BuyerDashboard extends StatefulWidget {
   const BuyerDashboard({super.key});
@@ -31,7 +32,8 @@ class _BuyerDashboardState extends State<BuyerDashboard>
   String _selectedCategory = 'All';
   String _searchQuery = '';
   List<Map<String, dynamic>> _quoteOrders = [];
-  int _activeNavIndex = 0; // 0: Market, 1: Escrow, 2: Telemetry, 3: AgroAI
+  int _activeNavIndex =
+      0; // 0: Home, 1: Market, 2: Escrow, 3: Telemetry, 4: AgroAI, 5: Profile
 
   final TextEditingController _searchController = TextEditingController();
   late AnimationController _pulseController;
@@ -162,11 +164,11 @@ class _BuyerDashboardState extends State<BuyerDashboard>
         'pricePerUnit': (p['pricePerUnit'] ?? 450).toInt(),
         'unitType': p['unitType'] ?? 'kg',
         'availableQuantity': (p['availableQuantity'] ?? 1000.0).toDouble(),
-        'inventoryPercent': 0.65,
-        'distanceKm': 14.5,
-        'gradeBadge': 'PostGIS Verified',
-        'telemetryInfo': 'ESP32 Telemetry Linked · 16.5°C Safe',
-        'timeAgo': 'Recent',
+        'inventoryPercent': p['inventoryPercent'],
+        'distanceKm': p['distanceKm'],
+        'gradeBadge': p['gradeBadge'],
+        'telemetryInfo': p['telemetryInfo'],
+        'timeAgo': p['timeAgo'],
         'spec1': 'Direct Farm Pickup',
         'spec2': 'Escrow Lock Ready',
         'imageUrl': p['imageUrl'] ?? 'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?q=80&w=800&auto=format&fit=crop',
@@ -531,6 +533,300 @@ class _BuyerDashboardState extends State<BuyerDashboard>
     );
   }
 
+  Widget _buildHomeOverview(String displayName, String initials) {
+    final activeOrders = _quoteOrders.length;
+    final availableLots = _displayLots.length;
+
+    return CustomScrollView(
+      slivers: [
+        SliverAppBar(
+          floating: true,
+          pinned: true,
+          backgroundColor: Colors.white.withValues(alpha: 0.92),
+          elevation: 0,
+          toolbarHeight: 64,
+          title: Row(
+            children: [
+              Semantics(
+                button: true,
+                label: 'Open buyer profile',
+                child: Tooltip(
+                  message: 'Open profile',
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(28),
+                    onTap: () => setState(() => _activeNavIndex = 5),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: CircleAvatar(
+                        radius: 20,
+                        backgroundColor: const Color(0xFFEFFAF3),
+                        child: Text(
+                          initials,
+                          style: const TextStyle(
+                            color: Color(0xFF0F5132),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Welcome back, $displayName',
+                    style: const TextStyle(
+                      color: Color(0xFF0F172A),
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Text(
+                    'Buyer overview',
+                    style: TextStyle(
+                      color: Color(0xFF64748B),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              const Text(
+                'Your sourcing dashboard',
+                style: TextStyle(
+                  color: Color(0xFF0F172A),
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Review activity and jump into the marketplace when you are ready.',
+                style: TextStyle(color: Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildOverviewMetric(
+                      Icons.receipt_long_rounded,
+                      'Active orders',
+                      '$activeOrders',
+                      const Color(0xFF0F5132),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildOverviewMetric(
+                      Icons.inventory_2_rounded,
+                      'Nearby lots',
+                      '$availableLots',
+                      const Color(0xFFD97706),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _buildOverviewPanel(
+                icon: Icons.location_on_outlined,
+                title: 'Sourcing location',
+                value: _locationDescription,
+                detail: 'Used to find produce near you',
+              ),
+              const SizedBox(height: 12),
+              _buildOverviewPanel(
+                icon: Icons.shield_outlined,
+                title: 'Escrow protection',
+                value: 'Available for every order',
+                detail: 'Funds stay protected until delivery is confirmed',
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                height: 52,
+                child: ElevatedButton.icon(
+                  onPressed: () => setState(() => _activeNavIndex = 1),
+                  icon: const Icon(Icons.storefront_rounded),
+                  label: const Text('Open marketplace'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0F5132),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Quick access',
+                style: TextStyle(
+                  color: Color(0xFF0F172A),
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildOverviewAction(
+                      Icons.verified_user_rounded,
+                      'Escrow',
+                      2,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildOverviewAction(
+                      Icons.sensors_rounded,
+                      'Telemetry',
+                      3,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildOverviewAction(
+                      Icons.psychology_rounded,
+                      'AgroAI',
+                      4,
+                    ),
+                  ),
+                ],
+              ),
+            ]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOverviewMetric(
+    IconData icon,
+    String label,
+    String value,
+    Color color,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Color(0xFF0F172A),
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          Text(label, style: const TextStyle(color: Color(0xFF64748B))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOverviewPanel({
+    required IconData icon,
+    required String title,
+    required String value,
+    required String detail,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(11),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFFAF3),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: const Color(0xFF0F5132)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(color: Color(0xFF64748B))),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF0F172A),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  detail,
+                  style: const TextStyle(
+                    color: Color(0xFF94A3B8),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOverviewAction(IconData icon, String label, int index) {
+    return InkWell(
+      onTap: () => setState(() => _activeNavIndex = index),
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.92),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: const Color(0xFF0F5132)),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFF334155),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthProvider>(context, listen: false);
@@ -548,7 +844,8 @@ class _BuyerDashboardState extends State<BuyerDashboard>
             child: Image.network(
               'https://img.freepik.com/premium-photo/agriculture-project-africa_943281-36244.jpg?w=2000',
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(color: const Color(0xFF0F382C)),
+              errorBuilder: (_, __, ___) =>
+                  Container(color: const Color(0xFF0F382C)),
             ),
           ),
           SafeArea(
@@ -558,458 +855,92 @@ class _BuyerDashboardState extends State<BuyerDashboard>
                 IndexedStack(
                   index: _activeNavIndex,
                   children: [
-                    // Index 0: Market
-                  CustomScrollView(
-                    slivers: [
-                      SliverAppBar(
-                        floating: true,
-                        pinned: true,
-                        backgroundColor: Colors.white.withValues(alpha: 0.92),
-                        elevation: 0,
-                        toolbarHeight: 64,
-                        bottom: PreferredSize(
-                          preferredSize: const Size.fromHeight(1),
-                          child: Container(color: const Color(0xFFE2E8F0), height: 1),
-                        ),
-                        title: Row(
-                          children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                image: const DecorationImage(
-                                  image: AssetImage('assets/images/agronexus.jpg'),
-                                  fit: BoxFit.cover,
-                                ),
-                                border: Border.all(color: const Color(0xFFD7F3E3)),
-                              ),
+                    // Index 0: Home
+                    _buildHomeOverview(displayName, initials),
+                    // Index 1: Market
+                    CustomScrollView(
+                      slivers: [
+                        SliverAppBar(
+                          floating: true,
+                          pinned: true,
+                          backgroundColor: Colors.white.withValues(alpha: 0.92),
+                          elevation: 0,
+                          toolbarHeight: 64,
+                          bottom: PreferredSize(
+                            preferredSize: const Size.fromHeight(1),
+                            child: Container(
+                              color: const Color(0xFFE2E8F0),
+                              height: 1,
                             ),
-                            const SizedBox(width: 10),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Row(
-                                  children: [
-                                    const Text(
-                                      'AgroNexus',
-                                      style: TextStyle(
-                                        color: Color(0xFF0F172A),
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: -0.3,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 6,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFEFFAF3),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: const Color(0xFFD7F3E3),
-                                        ),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          FadeTransition(
-                                            opacity: _pulseAnimation,
-                                            child: Container(
-                                              width: 6,
-                                              height: 6,
-                                              decoration: const BoxDecoration(
-                                                color: Color(0xFF10B981),
-                                                shape: BoxShape.circle,
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          const Text(
-                                            'Buyer',
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.bold,
-                                              color: Color(0xFF0F5132),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const Text(
-                                  'Institutional Wholesale Portal',
-                                  style: TextStyle(
-                                    color: Color(0xFF64748B),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        actions: [
-                          Stack(
+                          ),
+                          title: Row(
                             children: [
                               Container(
-                                margin: const EdgeInsets.only(right: 8),
-                                width: 36,
-                                height: 36,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFF1F5F9),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: IconButton(
-                                  padding: EdgeInsets.zero,
-                                  icon: const Icon(
-                                    Icons.notifications_none_rounded,
-                                    color: Color(0xFF475569),
-                                    size: 20,
-                                  ),
-                                  onPressed: () {},
-                                ),
-                              ),
-                              Positioned(
-                                top: 2,
-                                right: 10,
-                                child: Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF59E0B),
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: Colors.white,
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.only(right: 14.0),
-                            child: GestureDetector(
-                              onTap: () => auth.logout(),
-                              child: Container(
-                                padding: const EdgeInsets.all(2),
+                                width: 40,
+                                height: 40,
                                 decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  image: const DecorationImage(
+                                    image: AssetImage(
+                                      'assets/images/agronexus.jpg',
+                                    ),
+                                    fit: BoxFit.cover,
+                                  ),
                                   border: Border.all(
-                                    color: const Color(0xFF0F5132)
-                                        .withValues(alpha: 0.3),
-                                    width: 2,
-                                  ),
-                                ),
-                                child: CircleAvatar(
-                                  radius: 14,
-                                  backgroundColor: const Color(0xFF0F5132),
-                                  child: Text(
-                                    initials,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                    color: const Color(0xFFD7F3E3),
                                   ),
                                 ),
                               ),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      SliverToBoxAdapter(
-                        child: BuyerQuoteSection(
-                          quoteOrders: _quoteOrders,
-                          onRefreshNeeded: _loadQuoteOrders,
-                        ),
-                      ),
-                      SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
-                        sliver: SliverList(
-                          delegate: SliverChildListDelegate([
-                            Container(
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: const Color(0xFFE2E8F0)),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.02),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 40,
-                                    height: 40,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFEFFAF3),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: const Color(0xFFD7F3E3),
-                                      ),
-                                    ),
-                                    child: const Icon(
-                                      Icons.explore_rounded,
-                                      color: Color(0xFF0F5132),
-                                      size: 22,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const Text(
-                                          'Sourcing Farm GPS Coordinates',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: Color(0xFF64748B),
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          _locationDescription,
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF1E293B),
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF8FAFC),
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(
-                                        color: const Color(0xFFE2E8F0),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        FadeTransition(
-                                          opacity: _pulseAnimation,
-                                          child: Container(
-                                            width: 7,
-                                            height: 7,
-                                            decoration: const BoxDecoration(
-                                              color: Color(0xFF10B981),
-                                              shape: BoxShape.circle,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        const Text(
-                                          '±3.8m Precision',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                            color: Color(0xFF334155),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: const Color(0xFFE2E8F0)),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.02),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
+                              const SizedBox(width: 10),
+                              Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Row(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.all(6),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFEFFAF3),
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: const Icon(
-                                              Icons.radar_rounded,
-                                              size: 18,
-                                              color: Color(0xFF0F5132),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          const Text(
-                                            'Sourcing Radius Filter',
-                                            style: TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.bold,
-                                              color: Color(0xFF0F172A),
-                                            ),
-                                          ),
-                                        ],
+                                      const Text(
+                                        'AgroNexus',
+                                        style: TextStyle(
+                                          color: Color(0xFF0F172A),
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: -0.3,
+                                        ),
                                       ),
+                                      const SizedBox(width: 6),
                                       Container(
                                         padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFF1F5F9),
-                                          borderRadius: BorderRadius.circular(8),
-                                          border: Border.all(
-                                            color: const Color(0xFFE2E8F0),
-                                          ),
-                                        ),
-                                        child: const Row(
-                                          children: [
-                                            Icon(
-                                              Icons.tune_rounded,
-                                              size: 12,
-                                              color: Color(0xFF0F5132),
-                                            ),
-                                            SizedBox(width: 4),
-                                            Text(
-                                              'PostGIS ST_DWithin',
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w600,
-                                                color: Color(0xFF475569),
-                                                fontFamily: 'monospace',
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 14),
-                                  Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF1F5F9),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Row(
-                                      children: _radiusOptions.map((dist) {
-                                        final isSelected = _searchRadiusKm == dist;
-                                        return Expanded(
-                                          child: GestureDetector(
-                                            onTap: () {
-                                              setState(() => _searchRadiusKm = dist);
-                                              _fetchNearbyProduce();
-                                            },
-                                            child: AnimatedContainer(
-                                              duration: const Duration(
-                                                milliseconds: 200,
-                                              ),
-                                              padding: const EdgeInsets.symmetric(
-                                                vertical: 8,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: isSelected
-                                                    ? const Color(0xFF0F5132)
-                                                    : Colors.transparent,
-                                                borderRadius: BorderRadius.circular(
-                                                  8,
-                                                ),
-                                                boxShadow: isSelected
-                                                    ? [
-                                                        BoxShadow(
-                                                          color: const Color(
-                                                            0xFF0F5132,
-                                                          ).withValues(alpha: 0.3),
-                                                          blurRadius: 4,
-                                                          offset: const Offset(0, 2),
-                                                        ),
-                                                      ]
-                                                    : [],
-                                              ),
-                                              alignment: Alignment.center,
-                                              child: Text(
-                                                '${dist.toInt()} km',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: isSelected
-                                                      ? Colors.white
-                                                      : const Color(0xFF475569),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        'Perimeter: Within ${_searchRadiusKm.toInt()} km zone',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Color(0xFF64748B),
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
+                                          horizontal: 6,
                                           vertical: 2,
                                         ),
                                         decoration: BoxDecoration(
                                           color: const Color(0xFFEFFAF3),
-                                          borderRadius: BorderRadius.circular(6),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          border: Border.all(
+                                            color: const Color(0xFFD7F3E3),
+                                          ),
                                         ),
                                         child: Row(
                                           children: [
-                                            Container(
-                                              width: 6,
-                                              height: 6,
-                                              decoration: const BoxDecoration(
-                                                color: Color(0xFF1B8A53),
-                                                shape: BoxShape.circle,
+                                            FadeTransition(
+                                              opacity: _pulseAnimation,
+                                              child: Container(
+                                                width: 6,
+                                                height: 6,
+                                                decoration: const BoxDecoration(
+                                                  color: Color(0xFF10B981),
+                                                  shape: BoxShape.circle,
+                                                ),
                                               ),
                                             ),
                                             const SizedBox(width: 4),
-                                            Text(
-                                              '${_displayLots.length} verified harvest lots',
-                                              style: const TextStyle(
-                                                fontSize: 11,
+                                            const Text(
+                                              'Buyer',
+                                              style: TextStyle(
+                                                fontSize: 10,
                                                 fontWeight: FontWeight.bold,
                                                 color: Color(0xFF0F5132),
                                               ),
@@ -1019,242 +950,664 @@ class _BuyerDashboardState extends State<BuyerDashboard>
                                       ),
                                     ],
                                   ),
+                                  const Text(
+                                    'Institutional Wholesale Portal',
+                                    style: TextStyle(
+                                      color: Color(0xFF64748B),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
                                 ],
                               ),
-                            ),
-                            const SizedBox(height: 14),
-                            Row(
+                            ],
+                          ),
+                          actions: [
+                            Stack(
                               children: [
-                                Expanded(
-                                  child: Container(
-                                    height: 44,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: const Color(0xFFE2E8F0),
-                                      ),
-                                    ),
-                                    child: TextField(
-                                      controller: _searchController,
-                                      onChanged: (val) =>
-                                          setState(() => _searchQuery = val),
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        color: Color(0xFF0F172A),
-                                      ),
-                                      decoration: const InputDecoration(
-                                        hintText:
-                                            'Search crops, cooperatives, lot ID...',
-                                        hintStyle: TextStyle(
-                                          color: Color(0xFF94A3B8),
-                                          fontSize: 13,
-                                        ),
-                                        prefixIcon: Icon(
-                                          Icons.search_rounded,
-                                          color: Color(0xFF94A3B8),
-                                          size: 20,
-                                        ),
-                                        border: InputBorder.none,
-                                        contentPadding: EdgeInsets.symmetric(
-                                          vertical: 12,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
                                 Container(
-                                  width: 44,
-                                  height: 44,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF1F5F9),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: const Color(0xFFE2E8F0),
-                                    ),
+                                  margin: const EdgeInsets.only(right: 8),
+                                  width: 36,
+                                  height: 36,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFFF1F5F9),
+                                    shape: BoxShape.circle,
                                   ),
                                   child: IconButton(
+                                    padding: EdgeInsets.zero,
                                     icon: const Icon(
-                                      Icons.filter_list_rounded,
+                                      Icons.notifications_none_rounded,
                                       color: Color(0xFF475569),
                                       size: 20,
                                     ),
                                     onPressed: () {},
                                   ),
                                 ),
+                                Positioned(
+                                  top: 2,
+                                  right: 10,
+                                  child: Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF59E0B),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              height: 36,
-                              child: ListView.builder(
-                                scrollDirection: Axis.horizontal,
-                                itemCount: _categoryItems.length,
-                                itemBuilder: (context, index) {
-                                  final cat = _categoryItems[index];
-                                  final isSelected =
-                                      _selectedCategory == cat['value'];
-
-                                  return Padding(
-                                    padding: const EdgeInsets.only(right: 8.0),
-                                    child: InkWell(
-                                      onTap: () {
-                                        setState(
-                                          () => _selectedCategory = cat['value'],
-                                        );
-                                        _fetchNearbyProduce();
-                                      },
-                                      borderRadius: BorderRadius.circular(20),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 14,
-                                          vertical: 8,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: isSelected
-                                              ? const Color(0xFF0F172A)
-                                              : Colors.white,
-                                          borderRadius: BorderRadius.circular(20),
-                                          border: Border.all(
-                                            color: isSelected
-                                                ? const Color(0xFF0F172A)
-                                                : const Color(0xFFE2E8F0),
-                                          ),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            if (cat['value'] != 'All')
-                                              Icon(
-                                                cat['icon'],
-                                                size: 15,
-                                                color: isSelected
-                                                    ? Colors.white
-                                                    : cat['color'],
-                                              ),
-                                            if (cat['value'] != 'All')
-                                              const SizedBox(width: 6),
-                                            Text(
-                                              cat['name'],
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: isSelected
-                                                    ? FontWeight.bold
-                                                    : FontWeight.w600,
-                                                color: isSelected
-                                                    ? Colors.white
-                                                    : const Color(0xFF334155),
-                                              ),
-                                            ),
-                                          ],
+                            Padding(
+                              padding: const EdgeInsets.only(right: 14.0),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(24),
+                                onTap: () =>
+                                    setState(() => _activeNavIndex = 5),
+                                child: Semantics(
+                                  button: true,
+                                  label: 'Open buyer profile',
+                                  child: Container(
+                                    padding: const EdgeInsets.all(2),
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: const Color(0xFF0F5132)
+                                            .withValues(alpha: 0.3),
+                                        width: 2,
+                                      ),
+                                    ),
+                                    child: CircleAvatar(
+                                      radius: 14,
+                                      backgroundColor: const Color(0xFF0F5132),
+                                      child: Text(
+                                        initials,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                     ),
-                                  );
-                                },
+                                  ),
+                                ),
                               ),
                             ),
-                            const SizedBox(height: 20),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                          ],
+                        ),
+
+                        SliverToBoxAdapter(
+                          child: BuyerQuoteSection(
+                            quoteOrders: _quoteOrders,
+                            onRefreshNeeded: _loadQuoteOrders,
+                          ),
+                        ),
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+                          sliver: SliverList(
+                            delegate: SliverChildListDelegate([
+                              Container(
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: const Color(0xFFE2E8F0),
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.02,
+                                      ),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
                                   children: [
-                                    Text(
-                                      'Real-Time Available Lots',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF0F172A),
-                                        letterSpacing: -0.3,
+                                    Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFEFFAF3),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: const Color(0xFFD7F3E3),
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.explore_rounded,
+                                        color: Color(0xFF0F5132),
+                                        size: 22,
                                       ),
                                     ),
-                                    SizedBox(height: 2),
-                                    Text(
-                                      'PostGIS geosorted by buyer proximity',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Color(0xFF64748B),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'Sourcing Farm GPS Coordinates',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: Color(0xFF64748B),
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            _locationDescription,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0xFF1E293B),
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF8FAFC),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                          color: const Color(0xFFE2E8F0),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          FadeTransition(
+                                            opacity: _pulseAnimation,
+                                            child: Container(
+                                              width: 7,
+                                              height: 7,
+                                              decoration: const BoxDecoration(
+                                                color: Color(0xFF10B981),
+                                                shape: BoxShape.circle,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          const Text(
+                                            '±3.8m Precision',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF334155),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
                                 ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 6,
+                              ),
+                              const SizedBox(height: 14),
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: const Color(0xFFE2E8F0),
                                   ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: const Color(0xFFE2E8F0),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.02,
+                                      ),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.all(6),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFEFFAF3),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              child: const Icon(
+                                                Icons.radar_rounded,
+                                                size: 18,
+                                                color: Color(0xFF0F5132),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            const Text(
+                                              'Sourcing Radius Filter',
+                                              style: TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFF0F172A),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFF1F5F9),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                            border: Border.all(
+                                              color: const Color(0xFFE2E8F0),
+                                            ),
+                                          ),
+                                          child: const Row(
+                                            children: [
+                                              Icon(
+                                                Icons.tune_rounded,
+                                                size: 12,
+                                                color: Color(0xFF0F5132),
+                                              ),
+                                              SizedBox(width: 4),
+                                              Text(
+                                                'PostGIS ST_DWithin',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Color(0xFF475569),
+                                                  fontFamily: 'monospace',
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 14),
+                                    Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF1F5F9),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Row(
+                                        children: _radiusOptions.map((dist) {
+                                          final isSelected =
+                                              _searchRadiusKm == dist;
+                                          return Expanded(
+                                            child: GestureDetector(
+                                              onTap: () {
+                                                setState(
+                                                  () => _searchRadiusKm = dist,
+                                                );
+                                                _fetchNearbyProduce();
+                                              },
+                                              child: AnimatedContainer(
+                                                duration: const Duration(
+                                                  milliseconds: 200,
+                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      vertical: 8,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: isSelected
+                                                      ? const Color(0xFF0F5132)
+                                                      : Colors.transparent,
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  boxShadow: isSelected
+                                                      ? [
+                                                          BoxShadow(
+                                                            color:
+                                                                const Color(
+                                                                  0xFF0F5132,
+                                                                ).withValues(
+                                                                  alpha: 0.3,
+                                                                ),
+                                                            blurRadius: 4,
+                                                            offset:
+                                                                const Offset(
+                                                                  0,
+                                                                  2,
+                                                                ),
+                                                          ),
+                                                        ]
+                                                      : [],
+                                                ),
+                                                alignment: Alignment.center,
+                                                child: Text(
+                                                  '${dist.toInt()} km',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: isSelected
+                                                        ? Colors.white
+                                                        : const Color(
+                                                            0xFF475569,
+                                                          ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          'Perimeter: Within ${_searchRadiusKm.toInt()} km zone',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Color(0xFF64748B),
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFEFFAF3),
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Container(
+                                                width: 6,
+                                                height: 6,
+                                                decoration: const BoxDecoration(
+                                                  color: Color(0xFF1B8A53),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                '${_displayLots.length} verified harvest lots',
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFF0F5132),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Container(
+                                      height: 44,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: const Color(0xFFE2E8F0),
+                                        ),
+                                      ),
+                                      child: TextField(
+                                        controller: _searchController,
+                                        onChanged: (val) =>
+                                            setState(() => _searchQuery = val),
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          color: Color(0xFF0F172A),
+                                        ),
+                                        decoration: const InputDecoration(
+                                          hintText: 'Search crops, cooperatives, lot ID...',
+                                          hintStyle: TextStyle(
+                                            color: Color(0xFF94A3B8),
+                                            fontSize: 13,
+                                          ),
+                                          prefixIcon: Icon(
+                                            Icons.search_rounded,
+                                            color: Color(0xFF94A3B8),
+                                            size: 20,
+                                          ),
+                                          border: InputBorder.none,
+                                          contentPadding: EdgeInsets.symmetric(
+                                            vertical: 12,
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                  child: const Row(
-                                    children: [
-                                      Icon(
-                                        Icons.swap_vert_rounded,
-                                        size: 15,
-                                        color: Color(0xFF0F5132),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    width: 44,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF1F5F9),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: const Color(0xFFE2E8F0),
                                       ),
-                                      SizedBox(width: 4),
+                                    ),
+                                    child: IconButton(
+                                      icon: const Icon(
+                                        Icons.filter_list_rounded,
+                                        color: Color(0xFF475569),
+                                        size: 20,
+                                      ),
+                                      onPressed: () {},
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                height: 36,
+                                child: ListView.builder(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: _categoryItems.length,
+                                  itemBuilder: (context, index) {
+                                    final cat = _categoryItems[index];
+                                    final isSelected =
+                                        _selectedCategory == cat['value'];
+
+                                    return Padding(
+                                      padding: const EdgeInsets.only(
+                                        right: 8.0,
+                                      ),
+                                      child: InkWell(
+                                        onTap: () {
+                                          setState(
+                                            () => _selectedCategory =
+                                                cat['value'],
+                                          );
+                                          _fetchNearbyProduce();
+                                        },
+                                        borderRadius: BorderRadius.circular(20),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 14,
+                                            vertical: 8,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: isSelected
+                                                ? const Color(0xFF0F172A)
+                                                : Colors.white,
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
+                                            border: Border.all(
+                                              color: isSelected
+                                                  ? const Color(0xFF0F172A)
+                                                  : const Color(0xFFE2E8F0),
+                                            ),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              if (cat['value'] != 'All')
+                                                Icon(
+                                                  cat['icon'],
+                                                  size: 15,
+                                                  color: isSelected
+                                                      ? Colors.white
+                                                      : cat['color'],
+                                                ),
+                                              if (cat['value'] != 'All')
+                                                const SizedBox(width: 6),
+                                              Text(
+                                                cat['name'],
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: isSelected
+                                                      ? FontWeight.bold
+                                                      : FontWeight.w600,
+                                                  color: isSelected
+                                                      ? Colors.white
+                                                      : const Color(0xFF334155),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
                                       Text(
-                                        'Nearest First',
+                                        'Real-Time Available Lots',
                                         style: TextStyle(
-                                          fontSize: 11,
+                                          fontSize: 18,
                                           fontWeight: FontWeight.bold,
-                                          color: Color(0xFF334155),
+                                          color: Color(0xFF0F172A),
+                                          letterSpacing: -0.3,
+                                        ),
+                                      ),
+                                      SizedBox(height: 2),
+                                      Text(
+                                        'PostGIS geosorted by buyer proximity',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF64748B),
                                         ),
                                       ),
                                     ],
                                   ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            _isLoading
-                                ? const Center(
-                                    child: Padding(
-                                      padding: EdgeInsets.all(40.0),
-                                      child: CircularProgressIndicator(
-                                        color: Color(0xFF0F5132),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: const Color(0xFFE2E8F0),
                                       ),
                                     ),
-                                  )
-                                : _displayLots.isEmpty
-                                ? Container(
-                                    padding: const EdgeInsets.all(40),
-                                    alignment: Alignment.center,
-                                    child: const Text(
-                                      'No active produce lots match your current filters.',
-                                      style: TextStyle(color: Color(0xFF64748B)),
+                                    child: const Row(
+                                      children: [
+                                        Icon(
+                                          Icons.swap_vert_rounded,
+                                          size: 15,
+                                          color: Color(0xFF0F5132),
+                                        ),
+                                        SizedBox(width: 4),
+                                        Text(
+                                          'Nearest First',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF334155),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  )
-                                : ListView.builder(
-                                    shrinkWrap: true,
-                                    physics: const NeverScrollableScrollPhysics(),
-                                    itemCount: _displayLots.length,
-                                    itemBuilder: (context, index) {
-                                      final item = _displayLots[index];
-                                      return _buildHarvestCard(item);
-                                    },
                                   ),
-                          ]),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              _isLoading
+                                  ? const Center(
+                                      child: Padding(
+                                        padding: EdgeInsets.all(40.0),
+                                        child: CircularProgressIndicator(
+                                          color: Color(0xFF0F5132),
+                                        ),
+                                      ),
+                                    )
+                                  : _displayLots.isEmpty
+                                  ? Container(
+                                      padding: const EdgeInsets.all(40),
+                                      alignment: Alignment.center,
+                                      child: const Text(
+                                        'No active produce lots match your current filters.',
+                                        style: TextStyle(
+                                          color: Color(0xFF64748B),
+                                        ),
+                                      ),
+                                    )
+                                  : ListView.builder(
+                                      shrinkWrap: true,
+                                      physics:
+                                          const NeverScrollableScrollPhysics(),
+                                      itemCount: _displayLots.length,
+                                      itemBuilder: (context, index) {
+                                        final item = _displayLots[index];
+                                        return _buildHarvestCard(item);
+                                      },
+                                    ),
+                            ]),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                    // Index 1: Escrow
+                      ],
+                    ),
+                    // Index 2: Escrow
                     const BuyerEscrowScreen(),
-                    // Index 2: Telemetry
+                    // Index 3: Telemetry
                     const BuyerTelemetryScreen(),
-                    // Index 3: AgroAI
+                    // Index 4: AgroAI
                     const BuyerAgroAIScreen(),
+                    // Index 5: Profile
+                    const BuyerProfileScreen(),
                   ],
                 ),
-                if (_activeNavIndex == 0)
+                if (_activeNavIndex == 1)
                   Positioned(
                     left: 16,
                     right: 16,
@@ -1405,10 +1758,12 @@ class _BuyerDashboardState extends State<BuyerDashboard>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildNavItem(0, Icons.storefront_rounded, 'Market'),
-                        _buildNavItem(1, Icons.verified_user_rounded, 'Escrow'),
-                        _buildNavItem(2, Icons.sensors_rounded, 'Telemetry'),
-                        _buildNavItem(3, Icons.psychology_rounded, 'AgroAI'),
+                        _buildNavItem(0, Icons.home_rounded, 'Home'),
+                        _buildNavItem(1, Icons.storefront_rounded, 'Market'),
+                        _buildNavItem(2, Icons.verified_user_rounded, 'Escrow'),
+                        _buildNavItem(3, Icons.sensors_rounded, 'Telemetry'),
+                        _buildNavItem(4, Icons.psychology_rounded, 'AgroAI'),
+                        _buildNavItem(5, Icons.person_rounded, 'Profile'),
                       ],
                     ),
                   ),
@@ -1466,7 +1821,7 @@ class _BuyerDashboardState extends State<BuyerDashboard>
         child: Container(
           margin: const EdgeInsets.only(bottom: 16),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.55),
+            color: Colors.white.withValues(alpha: 0.55),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
@@ -1535,7 +1890,9 @@ class _BuyerDashboardState extends State<BuyerDashboard>
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '${item['distanceKm']} km away',
+                            item['distanceKm'] == null
+                                ? 'Distance unavailable'
+                                : '${item['distanceKm']} km away',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 11,
@@ -1567,7 +1924,8 @@ class _BuyerDashboardState extends State<BuyerDashboard>
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            item['gradeBadge'],
+                            item['gradeBadge']?.toString() ??
+                                'Verification pending',
                             style: const TextStyle(
                               color: Color(0xFF0F172A),
                               fontSize: 11,
@@ -1614,7 +1972,8 @@ class _BuyerDashboardState extends State<BuyerDashboard>
                                 const SizedBox(width: 6),
                                 Expanded(
                                   child: Text(
-                                    item['telemetryInfo'],
+                                    item['telemetryInfo']?.toString() ??
+                                        'Telemetry unavailable',
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 11,
@@ -1628,7 +1987,7 @@ class _BuyerDashboardState extends State<BuyerDashboard>
                             ),
                           ),
                           Text(
-                            item['timeAgo'],
+                            item['timeAgo']?.toString() ?? '',
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.7),
                               fontSize: 10,
@@ -1751,7 +2110,10 @@ class _BuyerDashboardState extends State<BuyerDashboard>
                     ClipRRect(
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
-                        value: (item['inventoryPercent'] as double),
+                        value: ((item['inventoryPercent'] as num?) ?? 0.0)
+                            .toDouble()
+                            .clamp(0.0, 1.0)
+                            .toDouble(),
                         backgroundColor: const Color(0xFFF1F5F9),
                         color: const Color(0xFF1B8A53),
                         minHeight: 6,
@@ -1769,7 +2131,9 @@ class _BuyerDashboardState extends State<BuyerDashboard>
                             decoration: BoxDecoration(
                               color: const Color(0xFFF8FAFC),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                              border: Border.all(
+                                color: const Color(0xFFE2E8F0),
+                              ),
                             ),
                             child: Row(
                               children: [
@@ -1781,7 +2145,8 @@ class _BuyerDashboardState extends State<BuyerDashboard>
                                 const SizedBox(width: 6),
                                 Expanded(
                                   child: Text(
-                                    item['spec1'],
+                                    item['spec1']?.toString() ??
+                                        'Pickup details unavailable',
                                     style: const TextStyle(
                                       fontSize: 11,
                                       color: Color(0xFF475569),
@@ -1805,7 +2170,9 @@ class _BuyerDashboardState extends State<BuyerDashboard>
                             decoration: BoxDecoration(
                               color: const Color(0xFFF8FAFC),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                              border: Border.all(
+                                color: const Color(0xFFE2E8F0),
+                              ),
                             ),
                             child: Row(
                               children: [
@@ -1817,7 +2184,8 @@ class _BuyerDashboardState extends State<BuyerDashboard>
                                 const SizedBox(width: 6),
                                 Expanded(
                                   child: Text(
-                                    item['spec2'],
+                                    item['spec2']?.toString() ??
+                                        'Escrow details unavailable',
                                     style: const TextStyle(
                                       fontSize: 11,
                                       color: Color(0xFF475569),

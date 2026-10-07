@@ -1,12 +1,14 @@
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../services/api_service.dart';
 import '../../services/auth_provider.dart';
 import '../../services/draft_service.dart';
 import '../../services/image_picker_service.dart';
 import '../../services/platform_services.dart';
-import '../../services/secure_storage_service.dart';
+import '../../widgets/farmer_background_layer.dart';
+import 'windows_camera_capture_screen.dart';
 
 class AddProduceScreen extends StatefulWidget {
   const AddProduceScreen({super.key});
@@ -23,12 +25,15 @@ class _AddProduceScreenState extends State<AddProduceScreen>
   final _priceController = TextEditingController(text: '');
   final _descriptionController = TextEditingController();
   final _imageUrlController = TextEditingController();
+  final _storageNodeController = TextEditingController();
 
   double _quantity = 200.0;
   String _category = 'FRUITS';
   String _unitType = 'kg';
-  String _selectedStorageNode = 'esp32_01';
+  String _selectedStorageNode = '';
   bool _hasIoTNode = false;
+  Map<String, String>? _liveTelemetry;
+  bool _telemetryLoading = false;
   String _selectedGrade = 'Grade A+ Export';
   int _activeProofIndex = 0;
 
@@ -50,19 +55,16 @@ class _AddProduceScreenState extends State<AddProduceScreen>
     {'name': 'COCOA', 'icon': Icons.local_cafe_rounded},
   ];
 
-  final List<Map<String, String>> _cultivarSuggestions = [
-    {'label': '+ Giant Plantain', 'title': 'Organic Giant Plantain (Musa paradisiaca)', 'cat': 'FRUITS', 'price': '450'},
-    {'label': '+ Red Roma', 'title': 'Red Roma Tomatoes (Lycopersicon)', 'cat': 'VEGETABLES', 'price': '600'},
-    {'label': '+ White Maize', 'title': 'White Corn Grain (Zea mays)', 'cat': 'CEREALS', 'price': '250'},
-    {'label': '+ Sweet Cassava', 'title': 'White Sweet Cassava Tubers', 'cat': 'TUBERS', 'price': '300'},
-    {'label': '+ Raw Cocoa F3', 'title': 'Raw Fermented Cocoa Beans Grade 1', 'cat': 'COCOA', 'price': '2850'},
-  ];
-
   // Mutable — starts empty; url/bytes are null until farmer captures/uploads a photo
   final List<Map<String, dynamic>> _harvestProofs = [
-    {'title': 'Overview',    'sub': 'Batch Overview',    'url': null, 'bytes': null},
-    {'title': 'Stem Cut',    'sub': 'Fresh Cut Proof',   'url': null, 'bytes': null},
-    {'title': 'Scale/Weight','sub': 'Depot Weight Proof', 'url': null, 'bytes': null},
+    {'title': 'Overview', 'sub': 'Batch Overview', 'url': null, 'bytes': null},
+    {'title': 'Stem Cut', 'sub': 'Fresh Cut Proof', 'url': null, 'bytes': null},
+    {
+      'title': 'Scale/Weight',
+      'sub': 'Depot Weight Proof',
+      'url': null,
+      'bytes': null,
+    },
   ];
 
   final List<Map<String, String>> _unitTypes = [
@@ -71,56 +73,6 @@ class _AddProduceScreenState extends State<AddProduceScreen>
     {'label': 'crates (Wood Box)', 'value': 'crates'},
     {'label': 'tons (Metric Ton)', 'value': 'tons'},
   ];
-
-  final List<Map<String, String>> _storageNodes = [
-    {'value': 'esp32_01', 'label': 'ESP32 Hub #01 - Silo #4 (14.2°C & 68% RH Safe)'},
-    {'value': 'esp32_02', 'label': 'ESP32 Hub #02 - Cold Vault B (8.4°C & 85% RH Optimal)'},
-    {'value': 'esp32_03', 'label': 'LoRaWAN Node #07 - Open Depot C (24.1°C & 52% RH)'},
-  ];
-
-  Map<String, Map<String, String>> get _telemetryMetricsByNode => {
-        'esp32_01': {
-          'temp': '14.2°C',
-          'tempStatus': 'Optimal',
-          'moisture': '68% RH',
-          'moistureStatus': 'Safe Range',
-          'power': '94%',
-          'powerStatus': 'Solar Feed',
-        },
-        'esp32_02': {
-          'temp': '8.4°C',
-          'tempStatus': 'Cold Vault',
-          'moisture': '85% RH',
-          'moistureStatus': 'Optimal',
-          'power': '99%',
-          'powerStatus': 'Mains Feed',
-        },
-        'esp32_03': {
-          'temp': '24.1°C',
-          'tempStatus': 'Ambient',
-          'moisture': '52% RH',
-          'moistureStatus': 'Monitored',
-          'power': '88%',
-          'powerStatus': 'LoRa Battery',
-        },
-      };
-
-  String get _dynamicBenchmark {
-    switch (_category) {
-      case 'FRUITS':
-        return '420 - 480 XAF/$_unitType';
-      case 'CEREALS':
-        return '220 - 280 XAF/$_unitType';
-      case 'TUBERS':
-        return '180 - 250 XAF/$_unitType';
-      case 'VEGETABLES':
-        return '500 - 650 XAF/$_unitType';
-      case 'COCOA':
-        return '2,600 - 3,100 XAF/$_unitType';
-      default:
-        return '400 - 500 XAF/$_unitType';
-    }
-  }
 
   final List<String> _qualityGrades = [
     'Grade A+ Export',
@@ -150,6 +102,7 @@ class _AddProduceScreenState extends State<AddProduceScreen>
     _priceController.dispose();
     _descriptionController.dispose();
     _imageUrlController.dispose();
+    _storageNodeController.dispose();
     super.dispose();
   }
 
@@ -179,17 +132,53 @@ class _AddProduceScreenState extends State<AddProduceScreen>
           _locationDescription = pos.description;
         });
       }
+
       _showSnackBar(
         'PostGIS RTK Coordinates Locked! (${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)})',
         isError: false,
       );
     } catch (_) {
       _showSnackBar(
-        'GPS Acquisition Notice: Updated to active RTK farm gate coordinates.',
-        isError: false,
+        'Unable to acquire your current location. Please try again before publishing.',
+        isError: true,
       );
     } finally {
       if (mounted) setState(() => _isLocating = false);
+    }
+  }
+
+  Future<void> _loadSelectedTelemetry() async {
+    if (!_hasIoTNode || _selectedStorageNode.isEmpty) {
+      if (mounted) setState(() => _liveTelemetry = null);
+      return;
+    }
+    setState(() => _telemetryLoading = true);
+    try {
+      final readings = await ApiService.getTelemetryNodeLogs(
+        _selectedStorageNode,
+      );
+      final latest = readings.isEmpty ? null : readings.first;
+      if (!mounted) return;
+      setState(() {
+        _liveTelemetry = latest == null
+            ? null
+            : {
+                'temp': '${latest['temperature'] ?? '—'}°C',
+                'tempStatus': latest['alertTriggered'] == true
+                    ? 'Alert'
+                    : 'Live reading',
+                'moisture': '${latest['humidity'] ?? '—'}% RH',
+                'moistureStatus': latest['alertTriggered'] == true
+                    ? 'Check storage'
+                    : 'Live reading',
+                'power': 'Unavailable',
+                'powerStatus': 'Not reported',
+              };
+      });
+    } catch (_) {
+      if (mounted) setState(() => _liveTelemetry = null);
+    } finally {
+      if (mounted) setState(() => _telemetryLoading = false);
     }
   }
 
@@ -217,20 +206,37 @@ class _AddProduceScreenState extends State<AddProduceScreen>
   /// Called when farmer taps Take Photo or Choose Gallery for an angle slot.
   Future<void> _capturePhoto(int slotIndex, {bool fromGallery = false}) async {
     try {
-      final picked = await ImagePickerService.pickImage(fromCamera: !fromGallery);
-      if (picked != null && mounted) {
-        setState(() {
-          _harvestProofs[slotIndex]['url'] = picked.dataUrl;
-          _harvestProofs[slotIndex]['bytes'] = picked.bytes;
-          _activeProofIndex = slotIndex;
-        });
-        _showSnackBar(
-          fromGallery
-              ? 'Photo selected from gallery: ${picked.name}'
-              : 'Photo captured: ${picked.name}',
-          isError: false,
+      final PickedProduceImage? picked;
+      if (!fromGallery && defaultTargetPlatform == TargetPlatform.windows) {
+        picked = await Navigator.of(context).push<PickedProduceImage>(
+          MaterialPageRoute(builder: (_) => const WindowsCameraCaptureScreen()),
         );
+      } else if (!fromGallery &&
+          !kIsWeb &&
+          (defaultTargetPlatform == TargetPlatform.linux ||
+              defaultTargetPlatform == TargetPlatform.macOS)) {
+        throw UnsupportedError(
+          'Camera capture is not available on this desktop platform. '
+          'Choose Gallery to select an image instead.',
+        );
+      } else {
+        picked = await ImagePickerService.pickImage(fromCamera: !fromGallery);
       }
+      if (picked == null) return;
+      if (!mounted) return;
+      final image = picked;
+
+      setState(() {
+        _harvestProofs[slotIndex]['url'] = image.dataUrl;
+        _harvestProofs[slotIndex]['bytes'] = image.bytes;
+        _activeProofIndex = slotIndex;
+      });
+      _showSnackBar(
+        fromGallery
+            ? 'Photo selected from gallery: ${image.name}'
+            : 'Photo captured: ${image.name}',
+        isError: false,
+      );
     } catch (e) {
       if (mounted) {
         _showSnackBar('Could not open image picker: $e', isError: true);
@@ -243,9 +249,19 @@ class _AddProduceScreenState extends State<AddProduceScreen>
 
     setState(() => _isLoading = true);
     try {
-      final storage = SecureStorageService();
-      final userIdStr = await storage.getUserId();
-      final farmerId = userIdStr != null ? int.parse(userIdStr) : 1;
+      final farmerId = int.tryParse(
+        context.read<AuthProvider>().currentUser?.id ?? '',
+      );
+      if (farmerId == null) {
+        throw Exception(
+          'Your authenticated farmer account could not be identified.',
+        );
+      }
+      if (_lat == null || _lon == null) {
+        throw Exception(
+          'Your current location is required before publishing this harvest batch.',
+        );
+      }
 
       // Use first available captured photo URL, or imageUrl field, or empty string
       final capturedUrl = _harvestProofs
@@ -267,8 +283,8 @@ class _AddProduceScreenState extends State<AddProduceScreen>
           'pricePerUnit': _unitPrice,
           'unitType': _unitType,
           'availableQuantity': _quantity,
-          'latitude': _lat ?? 3.8480,
-          'longitude': _lon ?? 11.5021,
+          'latitude': _lat,
+          'longitude': _lon,
           'imageUrl': finalImageUrl,
           'farmerId': farmerId,
         },
@@ -305,9 +321,14 @@ class _AddProduceScreenState extends State<AddProduceScreen>
   Future<void> _saveDraft() async {
     setState(() => _isLoading = true);
     try {
-      final storage = SecureStorageService();
-      final userIdStr = await storage.getUserId();
-      final farmerId = userIdStr != null ? int.tryParse(userIdStr) ?? 1 : 1;
+      final farmerId = int.tryParse(
+        context.read<AuthProvider>().currentUser?.id ?? '',
+      );
+      if (farmerId == null) {
+        throw Exception(
+          'Your authenticated farmer account could not be identified.',
+        );
+      }
 
       await DraftService.saveDraft({
         'title': _titleController.text.trim().isNotEmpty
@@ -322,7 +343,10 @@ class _AddProduceScreenState extends State<AddProduceScreen>
       });
 
       if (mounted) {
-        _showSnackBar('Draft saved! Visible in your dashboard.', isError: false);
+        _showSnackBar(
+          'Draft saved! Visible in your dashboard.',
+          isError: false,
+        );
         await Future.delayed(const Duration(milliseconds: 800));
         if (mounted) Navigator.pop(context, 'draft');
       }
@@ -339,10 +363,17 @@ class _AddProduceScreenState extends State<AddProduceScreen>
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(msg, style: const TextStyle(fontWeight: FontWeight.bold)),
-          backgroundColor: isError ? const Color(0xFFBA1A1A) : const Color(0xFF003820),
+          content: Text(
+            msg,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: isError
+              ? const Color(0xFFBA1A1A)
+              : const Color(0xFF0F5132),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
         ),
       );
     }
@@ -356,23 +387,34 @@ class _AddProduceScreenState extends State<AddProduceScreen>
         ? user.name!.substring(0, 1).toUpperCase()
         : 'F';
 
-    final activeTelemetry = _telemetryMetricsByNode[_selectedStorageNode] ??
-        _telemetryMetricsByNode['esp32_01']!;
+    final activeTelemetry =
+        _liveTelemetry ??
+        {
+          'temp': 'Unavailable',
+          'tempStatus': 'No live reading',
+          'moisture': 'Unavailable',
+          'moistureStatus': 'No live reading',
+          'power': 'Unavailable',
+          'powerStatus': 'Not reported',
+        };
 
     // Active photo data (bytes from real picker, or fallback URL)
     final activeProof = _harvestProofs[_activeProofIndex];
     final activePhotoUrl = activeProof['url'] as String?;
     final activeBytes = activeProof['bytes'] as Uint8List?;
-    final hasActivePhoto = activeBytes != null || (activePhotoUrl != null && activePhotoUrl.isNotEmpty);
+    final hasActivePhoto =
+        activeBytes != null ||
+        (activePhotoUrl != null && activePhotoUrl.isNotEmpty);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFE9FFED),
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: const Color(0xFFE9FFED).withValues(alpha: 0.9),
+        backgroundColor: const Color(0xF2FFFFFF),
+        foregroundColor: const Color(0xFF0F172A),
         toolbarHeight: 64,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF0B1F14)),
+          icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF0F172A)),
           onPressed: () => Navigator.pop(context),
         ),
         title: Row(
@@ -380,12 +422,12 @@ class _AddProduceScreenState extends State<AddProduceScreen>
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: const Color(0xFFDCF4E1),
+                color: const Color(0xFFEFFAF3),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(
                 Icons.eco_rounded,
-                color: Color(0xFF006C49),
+                color: Color(0xFF0F5132),
                 size: 20,
               ),
             ),
@@ -394,7 +436,7 @@ class _AddProduceScreenState extends State<AddProduceScreen>
               child: Text(
                 'List New Harvest Batch',
                 style: TextStyle(
-                  color: Color(0xFF0B1F14),
+                  color: Color(0xFF0F172A),
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
@@ -410,11 +452,11 @@ class _AddProduceScreenState extends State<AddProduceScreen>
               message: user?.name ?? 'Logged In Producer',
               child: CircleAvatar(
                 radius: 16,
-                backgroundColor: const Color(0xFF003820),
+                backgroundColor: const Color(0xFFEFFAF3),
                 child: Text(
                   userInitials,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: const Color(0xFF0F5132),
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
                   ),
@@ -424,1489 +466,1545 @@ class _AddProduceScreenState extends State<AddProduceScreen>
           ),
         ],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Top Hero Banner
-                Container(
-                  width: double.infinity,
-                  height: 140,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    image: const DecorationImage(
-                      image: NetworkImage(
-                        'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?q=80&w=800&auto=format&fit=crop',
-                      ),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          const Color(0xFF003820).withValues(alpha: 0.4),
-                          const Color(0xFF003820).withValues(alpha: 0.9),
-                        ],
-                      ),
-                    ),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: const Row(
-                                children: [
-                                  Icon(
-                                    Icons.satellite_alt_rounded,
-                                    size: 12,
-                                    color: Colors.white,
-                                  ),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    'Spatial RTK Active',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Listing automatically geocoded to PostGIS coordinates for automated 5km–100km radius matching with commercial buyers across the Central African corridor.',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.white.withValues(alpha: 0.9),
-                            height: 1.3,
+      body: Stack(
+        children: [
+          const FarmerBackgroundLayer(),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Top Hero Banner
+                    Container(
+                      width: double.infinity,
+                      height: 140,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        image: const DecorationImage(
+                          image: NetworkImage(
+                            'https://images.unsplash.com/photo-1500937386664-56d1dfef3854?q=80&w=800&auto=format&fit=crop',
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // STEP 1: Produce Identity
-                _buildCardSection(
-                  stepNumber: 'Step 1 of 3',
-                  title: 'Produce Identity',
-                  subtitle: 'Taxonomy, regional cultivar & classification',
-                  icon: Icons.eco_rounded,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        height: 38,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: _categories.length,
-                          itemBuilder: (context, index) {
-                            final cat = _categories[index];
-                            final isSelected = _category == cat['name'];
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 8.0),
-                              child: InkWell(
-                                onTap: () => setState(() => _category = cat['name'] as String),
-                                borderRadius: BorderRadius.circular(20),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 8,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: isSelected
-                                        ? const Color(0xFF003820)
-                                        : const Color(0xFFDCF4E1),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        cat['icon'] as IconData,
-                                        size: 16,
-                                        color: isSelected
-                                            ? Colors.white
-                                            : const Color(0xFF404942),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        cat['name'] as String,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                          color: isSelected
-                                              ? Colors.white
-                                              : const Color(0xFF404942),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
+                          fit: BoxFit.cover,
                         ),
                       ),
-                      const SizedBox(height: 14),
-
-                      const Text(
-                        'Produce Batch Title',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF404942),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Container(
+                      child: Container(
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE1FAE7),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: TextFormField(
-                          controller: _titleController,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF0B1F14),
+                          borderRadius: BorderRadius.circular(20),
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withValues(alpha: 0.35),
+                              Colors.black.withValues(alpha: 0.82),
+                            ],
                           ),
-                          decoration: const InputDecoration(
-                            hintText: 'e.g. Red Roma Tomatoes, White Maize...',
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 14,
-                            ),
-                            suffixIcon: Icon(
-                              Icons.check_circle_rounded,
-                              color: Color(0xFF006C49),
-                              size: 20,
-                            ),
-                          ),
-                          validator: (v) =>
-                              v!.isEmpty ? 'Please enter produce title' : null,
                         ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      const Text(
-                        'Quick Cultivar Suggesters',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF404942),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: _cultivarSuggestions.map((item) {
-                          return InkWell(
-                            onTap: () {
-                              setState(() {
-                                _titleController.text = item['title']!;
-                                _category = item['cat']!;
-                                _priceController.text = item['price']!;
-                              });
-                            },
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFDCF4E1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                item['label']!,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF003820),
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // SECTION: Produce Photo & Harvest Evidence
-                _buildCardSection(
-                  stepNumber: 'Verified Fresh',
-                  title: 'Produce Photo & Harvest Evidence',
-                  subtitle: 'High-res verification with EXIF telemetry',
-                  icon: Icons.add_a_photo_rounded,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Photo Preview Container — placeholder when no photo yet
-                      Container(
-                        height: 200,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          color: const Color(0xFFE1FAE7),
-                          image: hasActivePhoto
-                              ? DecorationImage(
-                                  image: activeBytes != null
-                                      ? MemoryImage(activeBytes) as ImageProvider
-                                      : NetworkImage(activePhotoUrl!),
-                                  fit: BoxFit.cover,
-                                )
-                              : null,
-                        ),
-                        child: Stack(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            // Gradient overlay — only when photo is present
-                            if (hasActivePhoto)
-                              Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(16),
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      Colors.black.withValues(alpha: 0.3),
-                                      Colors.transparent,
-                                      Colors.black.withValues(alpha: 0.8),
-                                    ],
-                                  ),
-                                ),
-                              ),
-
-                            // Upload placeholder — shown when no photo yet
-                            if (!hasActivePhoto)
-                              Center(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      width: 56,
-                                      height: 56,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFDCF4E1),
-                                        borderRadius: BorderRadius.circular(16),
-                                      ),
-                                      child: const Icon(
-                                        Icons.add_a_photo_rounded,
-                                        color: Color(0xFF006C49),
-                                        size: 28,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 10),
-                                    const Text(
-                                      'Tap \'Take Photo\' or \'Choose Gallery\'\nto add your harvest photo',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Color(0xFF404942),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-
-                            // EXIF badge — only when photo is captured
-                            if (hasActivePhoto)
-                              Positioned(
-                                top: 10,
-                                left: 10,
-                                child: Container(
+                            Row(
+                              children: [
+                                Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
+                                    horizontal: 8,
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.9),
+                                    color: Colors.white.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: const Row(
                                     children: [
                                       Icon(
-                                        Icons.photo_camera_rounded,
-                                        size: 13,
-                                        color: Color(0xFF006C49),
+                                        Icons.satellite_alt_rounded,
+                                        size: 12,
+                                        color: Colors.white,
                                       ),
                                       SizedBox(width: 4),
                                       Text(
-                                        'EXIF GPS Tagged • Just Now',
+                                        'Spatial RTK Active',
                                         style: TextStyle(
-                                          fontSize: 11,
+                                          fontSize: 10,
+                                          color: Colors.white,
                                           fontWeight: FontWeight.bold,
-                                          color: Color(0xFF003820),
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Listing automatically geocoded to PostGIS coordinates for automated 5km–100km radius matching with commercial buyers across the Central African corridor.',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.white.withValues(alpha: 0.9),
+                                height: 1.3,
                               ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
 
-                            // Edit button — only when photo is captured
-                            if (hasActivePhoto)
-                              Positioned(
-                                top: 10,
-                                right: 10,
-                                child: InkWell(
-                                  onTap: () => _capturePhoto(_activeProofIndex, fromGallery: true),
-                                  child: Container(
-                                    width: 32,
-                                    height: 32,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.9),
-                                      shape: BoxShape.circle,
+                    // STEP 1: Produce Identity
+                    _buildCardSection(
+                      stepNumber: 'Step 1 of 3',
+                      title: 'Produce Identity',
+                      subtitle: 'Taxonomy, regional cultivar & classification',
+                      icon: Icons.eco_rounded,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(
+                            height: 38,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: _categories.length,
+                              itemBuilder: (context, index) {
+                                final cat = _categories[index];
+                                final isSelected = _category == cat['name'];
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 8.0),
+                                  child: InkWell(
+                                    onTap: () => setState(
+                                      () => _category = cat['name'] as String,
                                     ),
-                                    child: const Icon(
-                                      Icons.edit_rounded,
-                                      size: 16,
-                                      color: Color(0xFF0B1F14),
-                                    ),
-                                  ),
-                                ),
-                              ),
-
-                            // AI quality check chip — only when photo is captured
-                            if (hasActivePhoto)
-                              Positioned(
-                                left: 10,
-                                right: 10,
-                                bottom: 10,
-                                child: Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.95),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: isSelected
+                                            ? const Color(0xFFEFFAF3)
+                                            : Colors.white,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Row(
                                         children: [
-                                          const Row(
-                                            children: [
-                                              Icon(
-                                                Icons.verified_rounded,
-                                                size: 16,
-                                                color: Color(0xFF006C49),
-                                              ),
-                                              SizedBox(width: 4),
-                                              Text(
-                                                'AI Visual Check: Quality Scan Ready',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Color(0xFF006C49),
-                                                ),
-                                              ),
-                                            ],
+                                          Icon(
+                                            cat['icon'] as IconData,
+                                            size: 16,
+                                            color: isSelected
+                                                ? const Color(0xFF0F5132)
+                                                : const Color(0xFF64748B),
                                           ),
+                                          const SizedBox(width: 6),
                                           Text(
-                                            '0% Visible Blight',
+                                            cat['name'] as String,
                                             style: TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w600,
-                                              color: const Color(0xFF404942),
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: isSelected
+                                                  ? const Color(0xFF0F5132)
+                                                  : const Color(0xFF64748B),
                                             ),
                                           ),
                                         ],
                                       ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        'Tap \u2713 to submit this batch photo for AI analysis',
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          color: Color(0xFF404942),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Take Photo & Choose Gallery Buttons (target selected slot)
-                      Row(
-                        children: [
-                          Expanded(
-                            child: InkWell(
-                              onTap: () => _capturePhoto(_activeProofIndex, fromGallery: false),
-                              borderRadius: BorderRadius.circular(12),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFDCF4E1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.photo_camera_rounded,
-                                      size: 18,
-                                      color: Color(0xFF003820),
-                                    ),
-                                    SizedBox(width: 6),
-                                    Text(
-                                      'Take Photo',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF003820),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: InkWell(
-                              onTap: () => _capturePhoto(_activeProofIndex, fromGallery: true),
-                              borderRadius: BorderRadius.circular(12),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFDCF4E1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.photo_library_rounded,
-                                      size: 18,
-                                      color: Color(0xFF003820),
-                                    ),
-                                    SizedBox(width: 6),
-                                    Text(
-                                      'Choose Gallery',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF003820),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Harvest Angle Proofs — dynamic count label
-                      Builder(builder: (ctx) {
-                        final captured = _harvestProofs.where((p) => p['bytes'] != null || (p['url'] != null && (p['url'] as String).isNotEmpty)).length;
-                        return Text(
-                          'Harvest Angle Proofs ($captured/${_harvestProofs.length} Captured)',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF404942),
-                          ),
-                        );
-                      }),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: List.generate(_harvestProofs.length, (idx) {
-                          final proof = _harvestProofs[idx];
-                          final isSelected = _activeProofIndex == idx;
-                          final thumbBytes = proof['bytes'] as Uint8List?;
-                          final thumbUrl = proof['url'] as String?;
-                          final hasThumb = thumbBytes != null || (thumbUrl != null && thumbUrl.isNotEmpty);
-
-                          return Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.only(right: 6.0),
-                              child: InkWell(
-                                onTap: () {
-                                  setState(() => _activeProofIndex = idx);
-                                  if (!hasThumb) {
-                                    _capturePhoto(idx, fromGallery: true);
-                                  }
-                                },
-                                borderRadius: BorderRadius.circular(10),
-                                child: Container(
-                                  height: 64,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: isSelected
-                                          ? const Color(0xFF006C49)
-                                          : const Color(0xFFC0C9C0),
-                                      width: isSelected ? 2 : 1,
-                                    ),
-                                    color: !hasThumb
-                                        ? const Color(0xFFE1FAE7)
-                                        : null,
-                                    image: hasThumb
-                                        ? DecorationImage(
-                                            image: thumbBytes != null
-                                                ? MemoryImage(thumbBytes) as ImageProvider
-                                                : NetworkImage(thumbUrl!),
-                                            fit: BoxFit.cover,
-                                          )
-                                        : null,
-                                  ),
-                                  child: Stack(
-                                    alignment: Alignment.center,
-                                    children: [
-                                      // Empty slot UI
-                                      if (!hasThumb)
-                                        Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            const Icon(
-                                              Icons.add_circle_outline_rounded,
-                                              size: 18,
-                                              color: Color(0xFF006C49),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              proof['title'] as String,
-                                              textAlign: TextAlign.center,
-                                              style: const TextStyle(
-                                                fontSize: 8,
-                                                fontWeight: FontWeight.bold,
-                                                color: Color(0xFF006C49),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-
-                                      // Label bar — shown only when photo is set
-                                      if (hasThumb)
-                                        Positioned(
-                                          left: 0,
-                                          right: 0,
-                                          bottom: 0,
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 2,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFF003820)
-                                                  .withValues(alpha: 0.8),
-                                              borderRadius:
-                                                  const BorderRadius.vertical(
-                                                bottom: Radius.circular(8),
-                                              ),
-                                            ),
-                                            child: Text(
-                                              proof['title'] as String,
-                                              textAlign: TextAlign.center,
-                                              style: const TextStyle(
-                                                fontSize: 9,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-
-                                      if (isSelected && hasThumb)
-                                        const Positioned(
-                                          top: 2,
-                                          right: 2,
-                                          child: Icon(
-                                            Icons.check_circle_rounded,
-                                            size: 14,
-                                            color: Color(0xFF006C49),
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        }),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // STEP 2: Pricing & Available Volume
-                _buildCardSection(
-                  stepNumber: 'Step 2 of 3',
-                  title: 'Pricing & Available Volume',
-                  subtitle: 'Real-time valuation in Central African CFA (XAF)',
-                  icon: Icons.scale_rounded,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Unit Price (XAF)',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF404942),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFE1FAE7),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: TextFormField(
-                                          controller: _priceController,
-                                          keyboardType: TextInputType.number,
-                                          onChanged: (_) => setState(() {}),
-                                          style: const TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF0B1F14),
-                                          ),
-                                          decoration: const InputDecoration(
-                                            border: InputBorder.none,
-                                          ),
-                                          validator: (v) =>
-                                              v!.isEmpty ? 'Required' : null,
-                                        ),
-                                      ),
-                                      const Text(
-                                        'XAF',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF404942),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Unit Measure',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF404942),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFE1FAE7),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: DropdownButtonHideUnderline(
-                                    child: DropdownButton<String>(
-                                      value: _unitType,
-                                      isExpanded: true,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF0B1F14),
-                                      ),
-                                      items: _unitTypes.map((u) {
-                                        return DropdownMenuItem<String>(
-                                          value: u['value'],
-                                          child: Text(u['label']!),
-                                        );
-                                      }).toList(),
-                                      onChanged: (val) {
-                                        if (val != null) {
-                                          setState(() => _unitType = val);
-                                        }
-                                      },
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE1FAE7),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'Harvest Available',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF0B1F14),
-                                  ),
-                                ),
-                                AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 150),
-                                  child: Text(
-                                    '${_quantity.toInt()} $_unitType',
-                                    key: ValueKey('$_quantity-$_unitType'),
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w800,
-                                      color: Color(0xFF003820),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Slider(
-                              value: _quantity,
-                              min: 200,
-                              max: 10000,
-                              divisions: 98,
-                              activeColor: const Color(0xFF003820),
-                              inactiveColor: const Color(0xFFDCF4E1),
-                              onChanged: (val) => setState(() => _quantity = val),
-                            ),
-                            Row(
-                              children: [
-                                _buildQtyAddButton('+500 $_unitType', 500),
-                                const SizedBox(width: 6),
-                                _buildQtyAddButton('+1,000 $_unitType', 1000),
-                                const SizedBox(width: 6),
-                                _buildQtyAddButton('+2,500 $_unitType', 2500),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFDCF4E1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Row(
-                              children: [
-                                Icon(
-                                  Icons.trending_up_rounded,
-                                  color: Color(0xFF006C49),
-                                  size: 18,
-                                ),
-                                SizedBox(width: 6),
-                                Text(
-                                  'Regional Wholesale Benchmark',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF0B1F14),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Text(
-                              _dynamicBenchmark,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF006C49),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // STEP 3: IoT Silo & Telemetry Link (Optional)
-                _buildCardSection(
-                  stepNumber: 'Optional',
-                  title: 'IoT Silo & Telemetry Link',
-                  subtitle: 'Automated Quality Attestation',
-                  icon: Icons.sensors_rounded,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Toggle row to link/unlink IoT node
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE1FAE7),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  _hasIoTNode ? Icons.sensors_rounded : Icons.sensors_off_rounded,
-                                  color: _hasIoTNode ? const Color(0xFF006C49) : const Color(0xFF64748B),
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 8),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Connect IoT Storage Node',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF0B1F14),
-                                      ),
-                                    ),
-                                    Text(
-                                      _hasIoTNode ? 'Active telemetry feed linked' : 'Optional — produce listed under ambient storage',
-                                      style: const TextStyle(fontSize: 10, color: Color(0xFF404942)),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            Switch(
-                              value: _hasIoTNode,
-                              activeThumbColor: const Color(0xFF003820),
-                              activeTrackColor: const Color(0xFF6CF8BB),
-                              onChanged: (val) => setState(() => _hasIoTNode = val),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      if (!_hasIoTNode) ...[
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFDCF4E1).withValues(alpha: 0.5),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0xFFC0C9C0)),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(Icons.info_outline_rounded, size: 16, color: Color(0xFF006C49)),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Standard harvest listing without IoT sensor link. Select your produce quality grade below.',
-                                  style: TextStyle(fontSize: 11, color: Color(0xFF404942)),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-
-                      if (_hasIoTNode) ...[
-                        const Text(
-                          'Attached Storage Node',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF404942),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE1FAE7),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: _selectedStorageNode,
-                              isExpanded: true,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF0B1F14),
-                              ),
-                              items: _storageNodes.map((s) {
-                                return DropdownMenuItem<String>(
-                                  value: s['value'],
-                                  child: Text(s['label']!),
                                 );
-                              }).toList(),
-                              onChanged: (val) {
-                                if (val != null) {
-                                  setState(() => _selectedStorageNode = val);
-                                }
                               },
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 12),
+                          const SizedBox(height: 14),
 
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildTelemetryMiniCard(
-                                icon: Icons.thermostat_rounded,
-                                label: 'Temp',
-                                value: activeTelemetry['temp']!,
-                                status: activeTelemetry['tempStatus']!,
-                              ),
+                          const Text(
+                            'Produce Batch Title',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF64748B),
                             ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: _buildTelemetryMiniCard(
-                                icon: Icons.water_drop_rounded,
-                                label: 'Moisture',
-                                value: activeTelemetry['moisture']!,
-                                status: activeTelemetry['moistureStatus']!,
-                              ),
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: _buildTelemetryMiniCard(
-                                icon: Icons.battery_charging_full_rounded,
-                                label: 'Power',
-                                value: activeTelemetry['power']!,
-                                status: activeTelemetry['powerStatus']!,
+                            child: TextFormField(
+                              controller: _titleController,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF0F172A),
                               ),
+                              decoration: const InputDecoration(
+                                hintText:
+                                    'e.g. Red Roma Tomatoes, White Maize...',
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 14,
+                                ),
+                                suffixIcon: Icon(
+                                  Icons.check_circle_rounded,
+                                  color: Color(0xFF0F5132),
+                                  size: 20,
+                                ),
+                              ),
+                              validator: (v) => v!.isEmpty
+                                  ? 'Please enter produce title'
+                                  : null,
                             ),
-                          ],
-                        ),
-                      ],
-                      const SizedBox(height: 14),
-
-                      Text(
-                        _hasIoTNode
-                            ? 'Produce Quality Grade (Verified by IoT Telemetry)'
-                            : 'Produce Quality Grade (Self-Declared)',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF404942),
-                        ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: _qualityGrades.map((grade) {
-                          final isSelected = _selectedGrade == grade;
-                          return Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.only(right: 6.0),
-                              child: InkWell(
-                                onTap: () => setState(() => _selectedGrade = grade),
-                                borderRadius: BorderRadius.circular(12),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 10,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: isSelected
-                                        ? const Color(0xFF003820)
-                                        : const Color(0xFFDCF4E1),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      Icon(
-                                        isSelected
-                                            ? Icons.verified_rounded
-                                            : Icons.check_circle_outline_rounded,
-                                        size: 16,
-                                        color: isSelected
-                                            ? Colors.white
-                                            : const Color(0xFF404942),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // SECTION: Produce Photo & Harvest Evidence
+                    _buildCardSection(
+                      stepNumber: 'Verified Fresh',
+                      title: 'Produce Photo & Harvest Evidence',
+                      subtitle: 'High-res verification with EXIF telemetry',
+                      icon: Icons.add_a_photo_rounded,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Photo Preview Container — placeholder when no photo yet
+                          Container(
+                            height: 200,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              color: Colors.white,
+                              image: hasActivePhoto
+                                  ? DecorationImage(
+                                      image: activeBytes != null
+                                          ? MemoryImage(activeBytes)
+                                                as ImageProvider
+                                          : NetworkImage(activePhotoUrl!),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
+                            ),
+                            child: Stack(
+                              children: [
+                                // Gradient overlay — only when photo is present
+                                if (hasActivePhoto)
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(16),
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          Colors.black.withValues(alpha: 0.3),
+                                          Colors.transparent,
+                                          Colors.black.withValues(alpha: 0.8),
+                                        ],
                                       ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        grade,
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: isSelected
-                                              ? Colors.white
-                                              : const Color(0xFF404942),
+                                    ),
+                                  ),
+
+                                // Upload placeholder — shown when no photo yet
+                                if (!hasActivePhoto)
+                                  Center(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          width: 56,
+                                          height: 56,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFEFFAF3),
+                                            borderRadius: BorderRadius.circular(
+                                              16,
+                                            ),
+                                          ),
+                                          child: const Icon(
+                                            Icons.add_a_photo_rounded,
+                                            color: Color(0xFF0F5132),
+                                            size: 28,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        const Text(
+                                          'Tap \'Take Photo\' or \'Choose Gallery\'\nto add your harvest photo',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Color(0xFF64748B),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                // EXIF badge — only when photo is captured
+                                if (hasActivePhoto)
+                                  Positioned(
+                                    top: 10,
+                                    left: 10,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.9,
+                                        ),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: const Row(
+                                        children: [
+                                          Icon(
+                                            Icons.photo_camera_rounded,
+                                            size: 13,
+                                            color: Color(0xFF0F5132),
+                                          ),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            'EXIF GPS Tagged • Just Now',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0xFF0F5132),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+
+                                // Edit button — only when photo is captured
+                                if (hasActivePhoto)
+                                  Positioned(
+                                    top: 10,
+                                    right: 10,
+                                    child: InkWell(
+                                      onTap: () => _capturePhoto(
+                                        _activeProofIndex,
+                                        fromGallery: true,
+                                      ),
+                                      child: Container(
+                                        width: 32,
+                                        height: 32,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(
+                                            alpha: 0.9,
+                                          ),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.edit_rounded,
+                                          size: 16,
+                                          color: Color(0xFF0F172A),
                                         ),
                                       ),
-                                    ],
+                                    ),
                                   ),
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
 
-                // STEP 4: PostGIS Farm Gate Proximity Lock
-                _buildCardSection(
-                  stepNumber: 'Step 3 of 3',
-                  title: 'PostGIS Farm Gate Proximity Lock',
-                  subtitle: 'SRID 4326 High-Precision Ephemeris',
-                  icon: Icons.location_on_rounded,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        height: 130,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(14),
-                          image: const DecorationImage(
-                            image: NetworkImage(
-                              'https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=800&auto=format&fit=crop',
-                            ),
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        child: Stack(
-                          children: [
-                            Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(14),
-                                color: const Color(0xFF003820).withValues(alpha: 0.35),
-                              ),
-                            ),
-                            Positioned(
-                              top: 8,
-                              left: 8,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.9),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: const Row(
-                                  children: [
-                                    Icon(
-                                      Icons.radar_rounded,
-                                      size: 12,
-                                      color: Color(0xFF006C49),
-                                    ),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      'Radius Lock: 50km Match Active',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF003820),
+                                // AI quality check chip — only when photo is captured
+                                if (hasActivePhoto)
+                                  Positioned(
+                                    left: 10,
+                                    right: 10,
+                                    bottom: 10,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.95,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            Center(
-                              child: FadeTransition(
-                                opacity: _pulseAnimation,
-                                child: Container(
-                                  width: 36,
-                                  height: 36,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFF003820),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.agriculture_rounded,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              left: 8,
-                              right: 8,
-                              bottom: 8,
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.95),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
                                       child: Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              const Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.verified_rounded,
+                                                    size: 16,
+                                                    color: Color(0xFF0F5132),
+                                                  ),
+                                                  SizedBox(width: 4),
+                                                  Text(
+                                                    'AI Visual Check: Quality Scan Ready',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: Color(0xFF0F5132),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              Text(
+                                                '0% Visible Blight',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: const Color(
+                                                    0xFF64748B,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 2),
                                           Text(
-                                            _locationDescription,
+                                            'Tap \u2713 to submit this batch photo for AI analysis',
                                             style: const TextStyle(
                                               fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                              color: Color(0xFF0B1F14),
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          Text(
-                                            'Lat: ${_lat?.toStringAsFixed(4) ?? "4.7502"}° N, Lon: ${_lon?.toStringAsFixed(4) ?? "11.2331"}° E',
-                                            style: const TextStyle(
-                                              fontSize: 10,
-                                              color: Color(0xFF404942),
+                                              color: Color(0xFF64748B),
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+
+                          // Take Photo & Choose Gallery Buttons (target selected slot)
+                          Row(
+                            children: [
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () => _capturePhoto(
+                                    _activeProofIndex,
+                                    fromGallery: false,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 10,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.photo_camera_rounded,
+                                          size: 18,
+                                          color: Color(0xFF0F5132),
+                                        ),
+                                        SizedBox(width: 6),
+                                        Text(
+                                          'Take Photo',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF0F5132),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () => _capturePhoto(
+                                    _activeProofIndex,
+                                    fromGallery: true,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 10,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.photo_library_rounded,
+                                          size: 18,
+                                          color: Color(0xFF0F5132),
+                                        ),
+                                        SizedBox(width: 6),
+                                        Text(
+                                          'Choose Gallery',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF0F5132),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+
+                          // Harvest Angle Proofs — dynamic count label
+                          Builder(
+                            builder: (ctx) {
+                              final captured = _harvestProofs
+                                  .where(
+                                    (p) =>
+                                        p['bytes'] != null ||
+                                        (p['url'] != null &&
+                                            (p['url'] as String).isNotEmpty),
+                                  )
+                                  .length;
+                              return Text(
+                                'Harvest Angle Proofs ($captured/${_harvestProofs.length} Captured)',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFFB7C2D6),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: List.generate(_harvestProofs.length, (
+                              idx,
+                            ) {
+                              final proof = _harvestProofs[idx];
+                              final isSelected = _activeProofIndex == idx;
+                              final thumbBytes = proof['bytes'] as Uint8List?;
+                              final thumbUrl = proof['url'] as String?;
+                              final hasThumb =
+                                  thumbBytes != null ||
+                                  (thumbUrl != null && thumbUrl.isNotEmpty);
+
+                              return Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(right: 6.0),
+                                  child: InkWell(
+                                    onTap: () {
+                                      setState(() => _activeProofIndex = idx);
+                                      if (!hasThumb) {
+                                        _capturePhoto(idx, fromGallery: true);
+                                      }
+                                    },
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Container(
+                                      height: 64,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color: isSelected
+                                              ? const Color(0xFF4EDEA3)
+                                              : const Color(0xFF32405A),
+                                          width: isSelected ? 2 : 1,
+                                        ),
+                                        color: !hasThumb
+                                            ? const Color(0xFF171F33)
+                                            : null,
+                                        image: hasThumb
+                                            ? DecorationImage(
+                                                image: thumbBytes != null
+                                                    ? MemoryImage(thumbBytes)
+                                                          as ImageProvider
+                                                    : NetworkImage(thumbUrl!),
+                                                fit: BoxFit.cover,
+                                              )
+                                            : null,
+                                      ),
+                                      child: Stack(
+                                        alignment: Alignment.center,
+                                        children: [
+                                          // Empty slot UI
+                                          if (!hasThumb)
+                                            Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(
+                                                  Icons
+                                                      .add_circle_outline_rounded,
+                                                  size: 18,
+                                                  color: Color(0xFF4EDEA3),
+                                                ),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  proof['title'] as String,
+                                                  textAlign: TextAlign.center,
+                                                  style: const TextStyle(
+                                                    fontSize: 8,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Color(0xFF4EDEA3),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+
+                                          // Label bar — shown only when photo is set
+                                          if (hasThumb)
+                                            Positioned(
+                                              left: 0,
+                                              right: 0,
+                                              bottom: 0,
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      vertical: 2,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFF0B1326)
+                                                      .withValues(alpha: 0.8),
+                                                  borderRadius:
+                                                      const BorderRadius.vertical(
+                                                        bottom: Radius.circular(
+                                                          8,
+                                                        ),
+                                                      ),
+                                                ),
+                                                child: Text(
+                                                  proof['title'] as String,
+                                                  textAlign: TextAlign.center,
+                                                  style: const TextStyle(
+                                                    fontSize: 9,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+
+                                          if (isSelected && hasThumb)
+                                            const Positioned(
+                                              top: 2,
+                                              right: 2,
+                                              child: Icon(
+                                                Icons.check_circle_rounded,
+                                                size: 14,
+                                                color: Color(0xFF4EDEA3),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // STEP 2: Pricing & Available Volume
+                    _buildCardSection(
+                      stepNumber: 'Step 2 of 3',
+                      title: 'Pricing & Available Volume',
+                      subtitle:
+                          'Real-time valuation in Central African CFA (XAF)',
+                      icon: Icons.scale_rounded,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Unit Price (XAF)',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFFB7C2D6),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
                                     Container(
                                       padding: const EdgeInsets.symmetric(
-                                        horizontal: 6,
-                                        vertical: 2,
+                                        horizontal: 12,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFE1FAE7),
-                                        borderRadius: BorderRadius.circular(4),
+                                        color: const Color(0xFF171F33),
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
-                                      child: const Text(
-                                        '±1.8m RTK',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF006C49),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: TextFormField(
+                                              controller: _priceController,
+                                              keyboardType:
+                                                  TextInputType.number,
+                                              onChanged: (_) => setState(() {}),
+                                              style: const TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFFF3F6FF),
+                                              ),
+                                              decoration: const InputDecoration(
+                                                border: InputBorder.none,
+                                              ),
+                                              validator: (v) => v!.isEmpty
+                                                  ? 'Required'
+                                                  : null,
+                                            ),
+                                          ),
+                                          const Text(
+                                            'XAF',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0xFFB7C2D6),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Unit Measure',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFFB7C2D6),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF171F33),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: DropdownButtonHideUnderline(
+                                        child: DropdownButton<String>(
+                                          value: _unitType,
+                                          isExpanded: true,
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFFF3F6FF),
+                                          ),
+                                          items: _unitTypes.map((u) {
+                                            return DropdownMenuItem<String>(
+                                              value: u['value'],
+                                              child: Text(u['label']!),
+                                            );
+                                          }).toList(),
+                                          onChanged: (val) {
+                                            if (val != null) {
+                                              setState(() => _unitType = val);
+                                            }
+                                          },
                                         ),
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Row(
-                            children: [
-                              Icon(
-                                Icons.satellite_rounded,
-                                size: 14,
-                                color: Color(0xFF006C49),
-                              ),
-                              SizedBox(width: 4),
-                              Text(
-                                '4/4 Constellation Satellites Locked',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Color(0xFF404942),
-                                ),
-                              ),
                             ],
                           ),
-                          InkWell(
-                            onTap: _isLocating ? null : _captureLocation,
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
+                          const SizedBox(height: 16),
+
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF171F33),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text(
+                                      'Harvest Available',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFFF3F6FF),
+                                      ),
+                                    ),
+                                    AnimatedSwitcher(
+                                      duration: const Duration(
+                                        milliseconds: 150,
+                                      ),
+                                      child: Text(
+                                        '${_quantity.toInt()} $_unitType',
+                                        key: ValueKey('$_quantity-$_unitType'),
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w800,
+                                          color: Color(0xFF0B1326),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Slider(
+                                  value: _quantity,
+                                  min: 200,
+                                  max: 10000,
+                                  divisions: 98,
+                                  activeColor: const Color(0xFF0B1326),
+                                  inactiveColor: const Color(0xFF171F33),
+                                  onChanged: (val) =>
+                                      setState(() => _quantity = val),
+                                ),
+                                Row(
+                                  children: [
+                                    _buildQtyAddButton('+500 $_unitType', 500),
+                                    const SizedBox(width: 6),
+                                    _buildQtyAddButton(
+                                      '+1,000 $_unitType',
+                                      1000,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    _buildQtyAddButton(
+                                      '+2,500 $_unitType',
+                                      2500,
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // STEP 3: IoT Silo & Telemetry Link (Optional)
+                    _buildCardSection(
+                      stepNumber: 'Optional',
+                      title: 'IoT Silo & Telemetry Link',
+                      subtitle: 'Automated Quality Attestation',
+                      icon: Icons.sensors_rounded,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Toggle row to link/unlink IoT node
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF171F33),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        _hasIoTNode
+                                            ? Icons.sensors_rounded
+                                            : Icons.sensors_off_rounded,
+                                        color: _hasIoTNode
+                                            ? const Color(0xFF4EDEA3)
+                                            : const Color(0xFF64748B),
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              'Connect IoT Storage Node',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFFF3F6FF),
+                                              ),
+                                            ),
+                                            Text(
+                                              _hasIoTNode
+                                                  ? 'Active telemetry feed linked'
+                                                  : 'Optional — produce listed under ambient storage',
+                                              style: const TextStyle(
+                                                fontSize: 10,
+                                                color: Color(0xFFB7C2D6),
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Switch(
+                                  value: _hasIoTNode,
+                                  activeThumbColor: const Color(0xFF0B1326),
+                                  activeTrackColor: const Color(0xFF4EDEA3),
+                                  onChanged: (val) {
+                                    setState(() {
+                                      _hasIoTNode = val;
+                                      _liveTelemetry = null;
+                                    });
+                                    if (val) _loadSelectedTelemetry();
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+
+                          if (!_hasIoTNode) ...[
+                            Container(
+                              padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFDCF4E1),
-                                borderRadius: BorderRadius.circular(8),
+                                color: const Color(0xFF171F33)
+                                    .withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: const Color(0xFF32405A),
+                                ),
                               ),
-                              child: Row(
+                              child: const Row(
                                 children: [
                                   Icon(
-                                    Icons.my_location_rounded,
-                                    size: 12,
-                                    color: _isLocating
-                                        ? Colors.grey
-                                        : const Color(0xFF006C49),
+                                    Icons.info_outline_rounded,
+                                    size: 16,
+                                    color: Color(0xFF4EDEA3),
                                   ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    _isLocating ? 'Locking...' : 'Re-calibrate GPS',
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF006C49),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Standard harvest listing without IoT sensor link. Select your produce quality grade below.',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Color(0xFFB7C2D6),
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
+                          ],
 
-                // STEP 5: Escrow Net Payout Guarantee
-                _buildCardSection(
-                  stepNumber: 'Safe Escrow',
-                  title: 'Escrow Net Payout Guarantee',
-                  subtitle: 'Smart Liquidity Buffer',
-                  icon: Icons.shield_rounded,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Expected Gross Value',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF404942),
-                            ),
-                          ),
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 150),
-                            child: Text(
-                              _formatXAF(_grossTotal),
-                              key: ValueKey('gross-$_grossTotal'),
-                              style: const TextStyle(
-                                fontSize: 14,
+                          if (_hasIoTNode) ...[
+                            const Text(
+                              'Attached Storage Node',
+                              style: TextStyle(
+                                fontSize: 11,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF0B1F14),
+                                color: Color(0xFFB7C2D6),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      const Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Platform Service Fee (5%)',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF404942),
-                            ),
-                          ),
-                          Text(
-                            'Shown at checkout',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF006C49),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      const Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Smart Contract Verification Fee',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF404942),
-                            ),
-                          ),
-                          Text(
-                            '0 XAF (Sponsored)',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF006C49),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const Divider(height: 18, color: Color(0xFFDCF4E1)),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            '100% Guaranteed Payout',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF0B1F14),
-                            ),
-                          ),
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 150),
-                            child: Text(
-                              _formatXAF(_grossTotal),
-                              key: ValueKey('net-$_grossTotal'),
+                            const SizedBox(height: 6),
+                            TextField(
+                              controller: _storageNodeController,
                               style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF003820),
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFF3F6FF),
                               ),
+                              decoration: const InputDecoration(
+                                hintText:
+                                    'Enter the node ID assigned to this silo',
+                                filled: true,
+                                fillColor: Color(0xFF171F33),
+                                border: OutlineInputBorder(
+                                  borderSide: BorderSide.none,
+                                  borderRadius: BorderRadius.all(
+                                    Radius.circular(12),
+                                  ),
+                                ),
+                              ),
+                              onChanged: (value) {
+                                final normalized = value.trim();
+                                if (normalized != _selectedStorageNode) {
+                                  setState(() {
+                                    _selectedStorageNode = normalized;
+                                    _liveTelemetry = null;
+                                  });
+                                }
+                              },
+                              onSubmitted: (_) => _loadSelectedTelemetry(),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE1FAE7),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(
-                              Icons.lock_clock_rounded,
-                              color: Color(0xFF006C49),
-                              size: 20,
-                            ),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Funds are locked into multisig escrow immediately upon purchase order receipt and instantly released upon digital delivery signoff.',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Color(0xFF404942),
+                            /* The node identifier is farmer-provided until the backend
+                           exposes a farmer-scoped node registry. */
+                            Container(
+                              margin: const EdgeInsets.only(top: 8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF171F33)
+                                    .withValues(alpha: 0.6),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Padding(
+                                padding: EdgeInsets.all(10),
+                                child: Text(
+                                  'Telemetry is loaded only after this node responds through the backend.',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFFB7C2D6),
+                                  ),
                                 ),
                               ),
                             ),
+                            const SizedBox(height: 12),
+
+                            if (_telemetryLoading)
+                              const LinearProgressIndicator(
+                                minHeight: 2,
+                                color: Color(0xFF4EDEA3),
+                              ),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildTelemetryMiniCard(
+                                    icon: Icons.thermostat_rounded,
+                                    label: 'Temp',
+                                    value: activeTelemetry['temp']!,
+                                    status: activeTelemetry['tempStatus']!,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: _buildTelemetryMiniCard(
+                                    icon: Icons.water_drop_rounded,
+                                    label: 'Moisture',
+                                    value: activeTelemetry['moisture']!,
+                                    status: activeTelemetry['moistureStatus']!,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: _buildTelemetryMiniCard(
+                                    icon: Icons.battery_charging_full_rounded,
+                                    label: 'Power',
+                                    value: activeTelemetry['power']!,
+                                    status: activeTelemetry['powerStatus']!,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
+                          const SizedBox(height: 14),
+
+                          Text(
+                            _hasIoTNode
+                                ? 'Produce Quality Grade (Verified by IoT Telemetry)'
+                                : 'Produce Quality Grade (Self-Declared)',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFB7C2D6),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: _qualityGrades.map((grade) {
+                              final isSelected = _selectedGrade == grade;
+                              return Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(right: 6.0),
+                                  child: InkWell(
+                                    onTap: () =>
+                                        setState(() => _selectedGrade = grade),
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 10,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: isSelected
+                                            ? const Color(0xFF0B1326)
+                                            : const Color(0xFF171F33),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          Icon(
+                                            isSelected
+                                                ? Icons.verified_rounded
+                                                : Icons
+                                                      .check_circle_outline_rounded,
+                                            size: 16,
+                                            color: isSelected
+                                                ? Colors.white
+                                                : const Color(0xFFB7C2D6),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            grade,
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: isSelected
+                                                  ? Colors.white
+                                                  : const Color(0xFFB7C2D6),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // STEP 4: PostGIS Farm Gate Proximity Lock
+                    _buildCardSection(
+                      stepNumber: 'Step 3 of 3',
+                      title: 'PostGIS Farm Gate Proximity Lock',
+                      subtitle: 'SRID 4326 High-Precision Ephemeris',
+                      icon: Icons.location_on_rounded,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            height: 130,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              image: const DecorationImage(
+                                image: NetworkImage(
+                                  'https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=800&auto=format&fit=crop',
+                                ),
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            child: Stack(
+                              children: [
+                                Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(14),
+                                    color: const Color(0xFF0B1326)
+                                        .withValues(alpha: 0.35),
+                                  ),
+                                ),
+                                Positioned(
+                                  top: 8,
+                                  left: 8,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.9,
+                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: const Row(
+                                      children: [
+                                        Icon(
+                                          Icons.radar_rounded,
+                                          size: 12,
+                                          color: Color(0xFF4EDEA3),
+                                        ),
+                                        SizedBox(width: 4),
+                                        Text(
+                                          'Radius Lock: 50km Match Active',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF0B1326),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                Center(
+                                  child: FadeTransition(
+                                    opacity: _pulseAnimation,
+                                    child: Container(
+                                      width: 36,
+                                      height: 36,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFF0B1326),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.agriculture_rounded,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  left: 8,
+                                  right: 8,
+                                  bottom: 8,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.95,
+                                      ),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                _locationDescription,
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFFF3F6FF),
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              Text(
+                                                'Lat: ${_lat?.toStringAsFixed(4) ?? "4.7502"}° N, Lon: ${_lon?.toStringAsFixed(4) ?? "11.2331"}° E',
+                                                style: const TextStyle(
+                                                  fontSize: 10,
+                                                  color: Color(0xFFB7C2D6),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 6,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF171F33),
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            '±1.8m RTK',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0xFF4EDEA3),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(
+                                    Icons.satellite_rounded,
+                                    size: 14,
+                                    color: Color(0xFF4EDEA3),
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    '4/4 Constellation Satellites Locked',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Color(0xFFB7C2D6),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              InkWell(
+                                onTap: _isLocating ? null : _captureLocation,
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF171F33),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.my_location_rounded,
+                                        size: 12,
+                                        color: _isLocating
+                                            ? Colors.grey
+                                            : const Color(0xFF4EDEA3),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        _isLocating
+                                            ? 'Locking...'
+                                            : 'Re-calibrate GPS',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF4EDEA3),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // STEP 5: Escrow Net Payout Guarantee
+                    _buildCardSection(
+                      stepNumber: 'Safe Escrow',
+                      title: 'Escrow Net Payout Guarantee',
+                      subtitle: 'Smart Liquidity Buffer',
+                      icon: Icons.shield_rounded,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Expected Gross Value',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFFB7C2D6),
+                                ),
+                              ),
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 150),
+                                child: Text(
+                                  _formatXAF(_grossTotal),
+                                  key: ValueKey('gross-$_grossTotal'),
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFFF3F6FF),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          const Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Platform Service Fee (5%)',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFFB7C2D6),
+                                ),
+                              ),
+                              Text(
+                                'Shown at checkout',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF4EDEA3),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          const Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Smart Contract Verification Fee',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFFB7C2D6),
+                                ),
+                              ),
+                              Text(
+                                '0 XAF (Sponsored)',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF4EDEA3),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Divider(height: 18, color: Color(0xFF171F33)),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                '100% Guaranteed Payout',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFFF3F6FF),
+                                ),
+                              ),
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 150),
+                                child: Text(
+                                  _formatXAF(_grossTotal),
+                                  key: ValueKey('net-$_grossTotal'),
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF0B1326),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF171F33),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(
+                                  Icons.lock_clock_rounded,
+                                  color: Color(0xFF4EDEA3),
+                                  size: 20,
+                                ),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Funds are protected through AgroNexus escrow and released after digital delivery signoff.',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: Color(0xFF64748B),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Submit Buttons
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0F5132),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 2,
+                        ),
+                        onPressed: _isLoading ? null : _submitListing,
+                        icon: _isLoading
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.cell_tower_rounded, size: 20),
+                        label: Text(
+                          _isLoading
+                              ? 'Broadcasting Spatial Telemetry...'
+                              : 'Publish Batch to AgroNexus Network',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
+                    ),
+                    const SizedBox(height: 10),
 
-                // Submit Buttons
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF003820),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 2,
-                    ),
-                    onPressed: _isLoading ? null : _submitListing,
-                    icon: _isLoading
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.cell_tower_rounded, size: 20),
-                    label: Text(
-                      _isLoading
-                          ? 'Broadcasting Spatial Telemetry...'
-                          : 'Publish Batch to AgroNexus Network',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
+                    SizedBox(
+                      width: double.infinity,
+                      height: 44,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: const Color(0xFFEFFAF3),
+                          side: BorderSide.none,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: _isLoading ? null : _saveDraft,
+                        icon: const Icon(
+                          Icons.save_rounded,
+                          size: 18,
+                          color: Color(0xFF64748B),
+                        ),
+                        label: const Text(
+                          'Save Draft in Local SQLite (Offline Mode)',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-                const SizedBox(height: 10),
-
-                SizedBox(
-                  width: double.infinity,
-                  height: 44,
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor: const Color(0xFFDCF4E1),
-                      side: BorderSide.none,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: _isLoading ? null : _saveDraft,
-                    icon: const Icon(
-                      Icons.save_rounded,
-                      size: 18,
-                      color: Color(0xFF404942),
-                    ),
-                    label: const Text(
-                      'Save Draft in Local SQLite (Offline Mode)',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF404942),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -1932,7 +2030,7 @@ class _AddProduceScreenState extends State<AddProduceScreen>
             style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF003820),
+              color: Color(0xFF0F172A),
             ),
           ),
         ),
@@ -1950,7 +2048,7 @@ class _AddProduceScreenState extends State<AddProduceScreen>
       duration: const Duration(milliseconds: 200),
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: const Color(0xFFE1FAE7),
+        color: const Color(0xFFEFFAF3),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -1958,11 +2056,11 @@ class _AddProduceScreenState extends State<AddProduceScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 12, color: const Color(0xFF006C49)),
+              Icon(icon, size: 12, color: const Color(0xFF0F5132)),
               const SizedBox(width: 2),
               Text(
                 label,
-                style: const TextStyle(fontSize: 10, color: Color(0xFF404942)),
+                style: const TextStyle(fontSize: 10, color: Color(0xFF64748B)),
               ),
             ],
           ),
@@ -1972,7 +2070,7 @@ class _AddProduceScreenState extends State<AddProduceScreen>
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF0B1F14),
+              color: Color(0xFFF3F6FF),
             ),
           ),
           Text(
@@ -1980,7 +2078,7 @@ class _AddProduceScreenState extends State<AddProduceScreen>
             style: const TextStyle(
               fontSize: 9,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF006C49),
+              color: Color(0xFF0F5132),
             ),
           ),
         ],
@@ -2020,10 +2118,10 @@ class _AddProduceScreenState extends State<AddProduceScreen>
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFDCF4E1),
+                      color: const Color(0xFFEFFAF3),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(icon, size: 18, color: const Color(0xFF003820)),
+                    child: Icon(icon, size: 18, color: const Color(0xFF0F5132)),
                   ),
                   const SizedBox(width: 10),
                   Column(
@@ -2034,14 +2132,14 @@ class _AddProduceScreenState extends State<AddProduceScreen>
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF0B1F14),
+                          color: Color(0xFF0F172A),
                         ),
                       ),
                       Text(
                         subtitle,
                         style: const TextStyle(
                           fontSize: 11,
-                          color: Color(0xFF404942),
+                          color: Color(0xFF64748B),
                         ),
                       ),
                     ],
@@ -2049,12 +2147,9 @@ class _AddProduceScreenState extends State<AddProduceScreen>
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE1FAE7),
+                  color: const Color(0xFFEFFAF3),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -2062,7 +2157,7 @@ class _AddProduceScreenState extends State<AddProduceScreen>
                   style: const TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF006C49),
+                    color: Color(0xFF0F5132),
                   ),
                 ),
               ),

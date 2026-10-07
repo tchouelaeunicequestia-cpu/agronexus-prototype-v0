@@ -60,6 +60,12 @@ public class User {
     @Column(name = "cni_verified")
     private Boolean cniVerified;
 
+    @Column(name = "cni_image_path", length = 500)
+    private String cniImagePath;
+
+    @Column(name = "face_image_path", length = 500)
+    private String faceImagePath;
+
     @Column(name = "is_verified")
     private Boolean isVerified;
 

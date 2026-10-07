@@ -38,11 +38,22 @@ public class KnowledgeEmbedding {
     @Column(name = "content_chunk", nullable = false, columnDefinition = "TEXT") // Full text capacity
     private String contentChunk;
 
+    @Column(name = "status", length = 20)
+    private String status;
+
+    @Column(name = "created_by", length = 100)
+    private String createdBy;
+
     @Column(name = "created_at")
     private ZonedDateTime createdAt;
 
     @PrePersist
     protected void onCreate() {
-        createdAt = ZonedDateTime.now();
+        if (createdAt == null) {
+            createdAt = ZonedDateTime.now();
+        }
+        if (status == null) {
+            status = "DRAFT";
+        }
     }
 }

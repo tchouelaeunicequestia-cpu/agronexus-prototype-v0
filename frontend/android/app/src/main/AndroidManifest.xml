@@ -6,8 +6,11 @@
     <!-- Biometric / Face Scan Permission -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 
+    <!-- Camera Permission for image_picker (CNI + Face capture) -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
     <application
-        android:label="frontend"
+        android:label="AGRONEXUS"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

@@ -1,6 +1,9 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:provider/provider.dart';
+
 import '../services/auth_provider.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
@@ -15,6 +18,10 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
+  static final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email', 'profile'],
+  );
+
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -52,6 +59,97 @@ class _LoginScreenState extends State<LoginScreen>
     _passwordController.dispose();
     _animController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _isLoading = true);
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+      final String? idToken = googleAuth.idToken;
+
+      if (idToken == null) {
+        throw Exception('Could not retrieve Google ID token.');
+      }
+
+      final authData = await ApiService.googleLogin(idToken: idToken);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle_rounded, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Signed in as ${googleUser.displayName ?? googleUser.email}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFF0f5132),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+
+      await Provider.of<AuthProvider>(context, listen: false).login(authData);
+    } catch (e) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.error_outline_rounded, color: AppTheme.errorRed),
+              SizedBox(width: 10),
+              Flexible(
+                child: Text(
+                  'Google Sign-In Failed',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            e.toString().replaceAll("Exception: ", ""),
+            style: const TextStyle(fontSize: 14, color: AppTheme.darkSlate),
+          ),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0f5132),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Try Again'),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _submitLogin() async {
@@ -165,9 +263,9 @@ class _LoginScreenState extends State<LoginScreen>
                   children: [
                     ClipRRect(
                       child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+                        filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
                         child: Container(
-                          color: Colors.black.withOpacity(0.6),
+                          color: Colors.black.withValues(alpha: 0.85),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16.0,
                             vertical: 12.0,
@@ -185,7 +283,9 @@ class _LoginScreenState extends State<LoginScreen>
                                         color: Colors.white,
                                         borderRadius: BorderRadius.circular(10),
                                         image: const DecorationImage(
-                                          image: AssetImage('assets/images/agronexus.jpg'),
+                                          image: AssetImage(
+                                            'assets/images/agronexus.jpg',
+                                          ),
                                           fit: BoxFit.cover,
                                         ),
                                       ),
@@ -193,7 +293,8 @@ class _LoginScreenState extends State<LoginScreen>
                                     const SizedBox(width: 10),
                                     const Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             'AgroNexus',
@@ -204,42 +305,10 @@ class _LoginScreenState extends State<LoginScreen>
                                             ),
                                             overflow: TextOverflow.ellipsis,
                                           ),
-                                          Text(
-                                            'Identity & RBAC Access Gateway',
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              color: Colors.white70,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
                                         ],
                                       ),
                                     ),
                                   ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: Colors.white.withOpacity(0.2)),
-                                ),
-                                child: const Text(
-                                  'CEMAC Ready',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
@@ -256,21 +325,28 @@ class _LoginScreenState extends State<LoginScreen>
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(24),
                               child: BackdropFilter(
-                                filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
+                                filter: ImageFilter.blur(
+                                  sigmaX: 15.0,
+                                  sigmaY: 15.0,
+                                ),
                                 child: Container(
                                   decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.6),
+                                    color: Colors.black.withValues(alpha: 0.85),
                                     borderRadius: BorderRadius.circular(24),
-                                    border: Border.all(color: Colors.white.withOpacity(0.2)),
+                                    border: Border.all(
+                                      color: Colors.white.withValues(alpha: 0.2),
+                                    ),
                                   ),
                                   clipBehavior: Clip.antiAlias,
                                   child: LayoutBuilder(
                                     builder: (context, boxConstraints) {
-                                      final isWide = boxConstraints.maxWidth > 850;
+                                      final isWide =
+                                          boxConstraints.maxWidth > 850;
                                       if (isWide) {
                                         return IntrinsicHeight(
                                           child: Row(
-                                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.stretch,
                                             children: [
                                               Expanded(
                                                 flex: 5,
@@ -289,7 +365,9 @@ class _LoginScreenState extends State<LoginScreen>
                                         return Column(
                                           children: [
                                             _buildLeftTeaserPanel(),
-                                            _buildRightLoginForm(isDesktop: false),
+                                            _buildRightLoginForm(
+                                              isDesktop: false,
+                                            ),
                                           ],
                                         );
                                       }
@@ -321,7 +399,7 @@ class _LoginScreenState extends State<LoginScreen>
           ),
           fit: BoxFit.cover,
           colorFilter: ColorFilter.mode(
-            Colors.black.withOpacity(0.45),
+            Colors.black.withValues(alpha: 0.45),
             BlendMode.darken,
           ),
         ),
@@ -340,11 +418,9 @@ class _LoginScreenState extends State<LoginScreen>
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.4),
+                  color: Colors.black.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.2),
-                  ),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -413,7 +489,7 @@ class _LoginScreenState extends State<LoginScreen>
             padding: const EdgeInsets.only(top: 14),
             decoration: BoxDecoration(
               border: Border(
-                top: BorderSide(color: Colors.white.withOpacity(0.15)),
+                top: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
               ),
             ),
             child: const Wrap(
@@ -449,9 +525,9 @@ class _LoginScreenState extends State<LoginScreen>
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.35),
+        color: Colors.black.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withOpacity(0.15)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -459,7 +535,7 @@ class _LoginScreenState extends State<LoginScreen>
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: const Color(0xFF22c55e).withOpacity(0.2),
+              color: const Color(0xFF22c55e).withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: const Color(0xFF4ade80), size: 16),
@@ -523,10 +599,7 @@ class _LoginScreenState extends State<LoginScreen>
                       SizedBox(height: 4),
                       Text(
                         'Access your verified AgroNexus workspace',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.white70,
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.white70),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -540,9 +613,9 @@ class _LoginScreenState extends State<LoginScreen>
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.white.withOpacity(0.2)),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                   ),
                   child: const Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
@@ -577,20 +650,26 @@ class _LoginScreenState extends State<LoginScreen>
                 labelText: 'Registered Email Address',
                 hintText: 'e.g. farmer@agronexus.io',
                 filled: true,
-                fillColor: Colors.white.withOpacity(0.1),
-                labelStyle: const TextStyle(color: Colors.white70, fontSize: 12),
+                fillColor: Colors.white.withValues(alpha: 0.1),
+                labelStyle: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                ),
                 hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF4ade80), width: 1.5),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF4ade80),
+                    width: 1.5,
+                  ),
                 ),
                 prefixIcon: const Icon(
                   Icons.email_outlined,
@@ -609,20 +688,26 @@ class _LoginScreenState extends State<LoginScreen>
                 labelText: 'Password',
                 hintText: '••••••••',
                 filled: true,
-                fillColor: Colors.white.withOpacity(0.1),
-                labelStyle: const TextStyle(color: Colors.white70, fontSize: 12),
+                fillColor: Colors.white.withValues(alpha: 0.1),
+                labelStyle: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                ),
                 hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF4ade80), width: 1.5),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF4ade80),
+                    width: 1.5,
+                  ),
                 ),
                 prefixIcon: const Icon(
                   Icons.lock_outline_rounded,
@@ -731,6 +816,68 @@ class _LoginScreenState extends State<LoginScreen>
                       ),
               ),
             ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.2))),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Text(
+                    'OR',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.85),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.2))),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.08),
+                  foregroundColor: Colors.white,
+                  side: BorderSide(color: Colors.white.withValues(alpha: 0.25)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: _isLoading ? null : _handleGoogleSignIn,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Text(
+                        'G',
+                        style: TextStyle(
+                          color: Color(0xFF4285F4),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'Sign in with Google',
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 16),
             Center(
               child: Wrap(
@@ -745,7 +892,9 @@ class _LoginScreenState extends State<LoginScreen>
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const RegisterScreen(),
+                        ),
                       );
                     },
                     child: const Text(

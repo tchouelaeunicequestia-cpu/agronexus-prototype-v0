@@ -68,6 +68,11 @@ public class FarmerDashboardController {
         dashboard.put("siloHumidity", telemetry == null ? null : telemetry.getHumidity());
         dashboard.put("siloGas", telemetry == null ? null : telemetry.getGasLevel());
         dashboard.put("telemetryAvailable", telemetry != null);
+        dashboard.put("telemetryNodeId", telemetry == null ? null : telemetry.getNodeId());
+        dashboard.put("storageFacilityName", telemetry == null ? null : telemetry.getStorageFacilityName());
+        dashboard.put("telemetryAlert", telemetry != null && Boolean.TRUE.equals(telemetry.getIsAlertTriggered()));
+        dashboard.put("telemetryAlertMessage", telemetry == null ? null : telemetry.getAlertMessage());
+        dashboard.put("telemetryRecordedAt", telemetry == null ? null : telemetry.getRecordedAt());
         return ResponseEntity.ok(dashboard);
     }
 }

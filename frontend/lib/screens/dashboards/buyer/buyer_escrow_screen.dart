@@ -1,241 +1,358 @@
-// buyer_escrow_screen.dart
-// TODO: Full escrow management screen — coming in a future sprint.
-// Placeholder wired to the Buyer Dashboard bottom nav (index 1).
-
-import 'dart:ui';
 import 'package:flutter/material.dart';
 
-class BuyerEscrowScreen extends StatelessWidget {
+import 'package:frontend/services/api_service.dart';
+
+class BuyerEscrowScreen extends StatefulWidget {
   const BuyerEscrowScreen({super.key});
 
   @override
+  State<BuyerEscrowScreen> createState() => _BuyerEscrowScreenState();
+}
+
+class _BuyerEscrowScreenState extends State<BuyerEscrowScreen> {
+  static const _green = Color(0xFF0F5132);
+  static const _text = Color(0xFF0F172A);
+  static const _muted = Color(0xFF64748B);
+
+  List<Map<String, dynamic>> _orders = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOrders();
+  }
+
+  Future<void> _loadOrders() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final orders = await ApiService.getBuyerQuoteOrders();
+      if (mounted) {
+        setState(() {
+          _orders = orders;
+          _isLoading = false;
+        });
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _error = error.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  double _number(Map<String, dynamic> order, String key) {
+    return double.tryParse(order[key]?.toString() ?? '') ?? 0;
+  }
+
+  String _formatAmount(double amount) {
+    return '${amount.toStringAsFixed(0)} XAF';
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 100, 20, 100),
+    final lockedTotal = _orders.fold<double>(
+      0,
+      (total, order) =>
+          total +
+          _number(order, 'itemCost') +
+          _number(order, 'transportFee') +
+          _number(order, 'platformServiceFee'),
+    );
+
+    return RefreshIndicator(
+      onRefresh: _loadOrders,
+      color: _green,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverAppBar(
+            pinned: true,
+            backgroundColor: Colors.white.withValues(alpha: 0.92),
+            foregroundColor: _text,
+            elevation: 0,
+            title: const Text(
+              'Escrow',
+              style: TextStyle(color: _text, fontWeight: FontWeight.bold),
+            ),
+            actions: [
+              IconButton(
+                tooltip: 'Refresh escrow orders',
+                onPressed: _isLoading ? null : _loadOrders,
+                icon: const Icon(Icons.refresh_rounded),
+              ),
+            ],
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 110),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                _buildIntroCard(lockedTotal),
+                const SizedBox(height: 20),
+                const Text(
+                  'Pending escrow orders',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                if (_isLoading)
+                  const Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Center(
+                      child: CircularProgressIndicator(color: Colors.white),
+                    ),
+                  )
+                else if (_error != null)
+                  _buildMessageCard(
+                    icon: Icons.cloud_off_rounded,
+                    title: 'Unable to load escrow orders',
+                    message: _error!,
+                    actionLabel: 'Try again',
+                    onAction: _loadOrders,
+                  )
+                else if (_orders.isEmpty)
+                  _buildMessageCard(
+                    icon: Icons.lock_open_rounded,
+                    title: 'No pending escrow orders',
+                    message: 'Orders created from the Market tab will appear here while they are awaiting payment or transport confirmation.',
+                  )
+                else
+                  ..._orders.map(_buildOrderCard),
+              ]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIntroCard(double lockedTotal) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFD7F3E3)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header pill
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0F5132).withOpacity(0.9),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.verified_user_rounded, color: Colors.white, size: 14),
-                SizedBox(width: 6),
-                Text(
-                  'ESCROW VAULT',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Title card
-          ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.92),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFD7F3E3)),
+                  color: _green,
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF0F5132), Color(0xFF16A34A)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: const Icon(
-                            Icons.account_balance_wallet_rounded,
-                            color: Colors.white,
-                            size: 28,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Escrow Management',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF0F172A),
-                                  letterSpacing: -0.4,
-                                ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                'Secure blockchain-backed depository orders',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF64748B),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF0FDF4),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFBBF7D0)),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.construction_rounded,
-                              color: Color(0xFF16A34A), size: 20),
-                          SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              'This module is under active development. Your existing escrow orders placed from the Market tab are already visible in the Orders section.',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF166534),
-                                height: 1.4,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                child: const Icon(
+                  Icons.account_balance_wallet_rounded,
+                  color: Colors.white,
+                  size: 25,
                 ),
               ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Feature preview cards
-          ...[
-            {
-              'icon': Icons.lock_clock_rounded,
-              'title': 'Active Locks',
-              'subtitle': 'View all currently locked escrow orders',
-              'color': const Color(0xFF0F5132),
-              'bg': const Color(0xFFEFFAF3),
-            },
-            {
-              'icon': Icons.timeline_rounded,
-              'title': 'Transaction History',
-              'subtitle': 'Full audit trail of all depository movements',
-              'color': const Color(0xFF1D4ED8),
-              'bg': const Color(0xFFEFF6FF),
-            },
-            {
-              'icon': Icons.gavel_rounded,
-              'title': 'Dispute Resolution',
-              'subtitle': 'Raise and track order disputes',
-              'color': const Color(0xFFB45309),
-              'bg': const Color(0xFFFEF3C7),
-            },
-          ].map((item) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.88),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: (item['bg'] as Color),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(
-                            item['icon'] as IconData,
-                            color: item['color'] as Color,
-                            size: 22,
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item['title'] as String,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF0F172A),
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                item['subtitle'] as String,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF64748B),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Text(
-                            'Soon',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF94A3B8),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+              const SizedBox(width: 14),
+              const Expanded(
+                child: Text(
+                  'Protected payments',
+                  style: TextStyle(
+                    color: _text,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
-            );
-          }).toList(),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Your payment stays protected until the order milestones are completed.',
+            style: TextStyle(color: _muted, height: 1.4),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _summaryMetric(
+                  'Pending orders',
+                  _orders.length.toString(),
+                  Icons.receipt_long_rounded,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _summaryMetric(
+                  'Escrow value',
+                  _formatAmount(lockedTotal),
+                  Icons.lock_rounded,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryMetric(String label, String value, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFFAF3),
+        borderRadius: BorderRadius.circular(13),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: _green, size: 19),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: _text,
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(label, style: const TextStyle(color: _muted, fontSize: 11)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderCard(Map<String, dynamic> order) {
+    final amount =
+        _number(order, 'itemCost') +
+        _number(order, 'transportFee') +
+        _number(order, 'platformServiceFee');
+    final status = order['status']?.toString() ?? 'PENDING';
+    final title = order['productTitle']?.toString() ?? 'Produce order';
+    final code = order['orderCode']?.toString() ?? 'Unavailable';
+    final quantity = order['quantity']?.toString() ?? '0';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.lock_clock_rounded, color: _green),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    color: _text,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              _statusChip(status),
+            ],
+          ),
+          const Divider(height: 24),
+          _detailRow('Order code', code),
+          _detailRow('Quantity', quantity),
+          _detailRow('Protected amount', _formatAmount(amount), isTotal: true),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String value, {bool isTotal = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Text(label, style: const TextStyle(color: _muted, fontSize: 12)),
+          const Spacer(),
+          Text(
+            value,
+            style: TextStyle(
+              color: isTotal ? _green : _text,
+              fontWeight: FontWeight.w700,
+              fontSize: isTotal ? 14 : 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusChip(String status) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF3C7),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        status,
+        style: const TextStyle(
+          color: Color(0xFF92400E),
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMessageCard({
+    required IconData icon,
+    required String title,
+    required String message,
+    String? actionLabel,
+    Future<void> Function()? onAction,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: _green, size: 34),
+          const SizedBox(height: 10),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: _text,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: _muted, height: 1.4),
+          ),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: 14),
+            OutlinedButton(onPressed: onAction, child: Text(actionLabel)),
+          ],
         ],
       ),
     );

@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../services/api_service.dart';
 import 'package:frontend/services/api_service.dart';
-import 'package:frontend/services/auth_provider.dart';
-import 'package:frontend/services/draft_service.dart';
-import 'package:frontend/services/platform_services.dart';
 
 class HandoverActionCard extends StatelessWidget {
   final String orderId;
@@ -58,14 +54,13 @@ class HandoverActionCard extends StatelessWidget {
                 style: ElevatedButton.styleFrom(backgroundColor: buttonColor),
                 onPressed: () async {
                   bool success = false;
-                  ApiService api = ApiService();
 
                   if (role.toUpperCase() == 'FARMER') {
-                    success = await api.farmerSignoffDispatch(orderId, authToken);
+                    success = await ApiService.farmerSignoffDispatch(orderId, authToken);
                   } else if (role.toUpperCase() == 'TRANSPORTER') {
-                    success = await api.transporterConfirmDelivery(orderId, authToken);
+                    success = await ApiService.transporterConfirmDelivery(orderId, authToken);
                   } else if (role.toUpperCase() == 'BUYER') {
-                    success = await api.buyerReleaseEscrow(orderId, authToken);
+                    success = await ApiService.buyerReleaseEscrow(orderId, authToken);
                   }
 
                   if (context.mounted) {

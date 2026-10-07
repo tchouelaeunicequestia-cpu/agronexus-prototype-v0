@@ -3,6 +3,7 @@ package com.agronexus.api.repository;
 import com.agronexus.api.entity.TelemetryLog;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 
@@ -26,4 +27,16 @@ public interface TelemetryLogRepository extends JpaRepository<TelemetryLog, Long
     List<TelemetryLog> findByIsAlertTriggeredTrue();
 
     TelemetryLog findTopByOrderByRecordedAtDesc();
+
+    TelemetryLog findTopByNodeIdOrderByRecordedAtDesc(String nodeId);
+
+    boolean existsByNodeId(String nodeId);
+
+    long countByIsAlertTriggeredTrue();
+
+    @Query("select count(distinct t.nodeId) from TelemetryLog t")
+    long countDistinctNodeIds();
+
+    @Query("select distinct t.nodeId from TelemetryLog t order by t.nodeId")
+    List<String> findDistinctNodeIds();
 }
