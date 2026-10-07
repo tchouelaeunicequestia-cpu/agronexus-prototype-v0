@@ -37,63 +37,20 @@ class _TransporterLoadsScreenState extends State<TransporterLoadsScreen> {
       final orders = await ApiService.getTransportQuoteRequests();
       if (mounted) {
         setState(() {
-          _quoteRequests = orders.isEmpty ? _getMockLoads() : orders;
+          _quoteRequests = orders;
           _isLoading = false;
         });
       }
     } catch (_) {
       if (mounted) {
         setState(() {
-          _quoteRequests = _getMockLoads();
+          _quoteRequests = [];
           _isLoading = false;
         });
       }
     }
   }
 
-  List<dynamic> _getMockLoads() {
-    return [
-      {
-        'id': '1',
-        'type': 'Cold-Chain 3.5°C',
-        'priority': 'High Value',
-        'price': '85,000',
-        'title': '1,500 kg Organic Hass Avocados',
-        'seller': 'Farmer Eunice Françoise',
-        'pickup': '14:00 - 15:30',
-        'distance': '118 km • Est. 2h 15m transit',
-        'origin': 'Bafia Highland Agro-Coop',
-        'destination': 'Bastos Depot, Yaoundé',
-        'image': 'https://images.unsplash.com/photo-1519162808019-7de1683fa2ad?auto=format&fit=crop&q=80&w=200',
-      },
-      {
-        'id': '2',
-        'type': 'Covered Dry Cargo',
-        'priority': 'Fast Pickup',
-        'price': '42,000',
-        'title': '3,200 kg Fresh Cassava & Plantains',
-        'seller': 'Obala Agro-Market Collective',
-        'pickup': 'Staging ready in 45m',
-        'distance': '48 km • Est. 55m transit',
-        'origin': 'Obala Agricultural Center',
-        'destination': 'Mfoundi Central Wholesale Market',
-        'image': 'https://images.unsplash.com/photo-1596489370642-e14b1ba0206d?auto=format&fit=crop&q=80&w=200',
-      },
-      {
-        'id': '3',
-        'type': 'Port Export',
-        'priority': 'Moisture <11%',
-        'price': '195,000',
-        'title': '2,000 kg Washed Arabica Coffee',
-        'seller': 'Bafia Silo Complex Alpha',
-        'pickup': 'Phytosanitary Cleared',
-        'distance': '290 km • Est. 4h 45m transit',
-        'origin': 'Bafia Storage Silo Alpha',
-        'destination': 'Douala Autonomous Port (PAD)',
-        'image': 'https://images.unsplash.com/photo-1559525839-b184a4d698c7?auto=format&fit=crop&q=80&w=200',
-      }
-    ];
-  }
 
   @override
   Widget build(BuildContext context) {

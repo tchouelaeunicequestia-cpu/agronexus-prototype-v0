@@ -38,7 +38,7 @@ class _AgronomistDashboardState extends State<AgronomistDashboard> {
     super.initState();
     _loadOverview();
     _overviewPollingTimer = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (mounted) _loadOverview(showNewAlerts: true);
+      if (mounted && !_isLoading) _loadOverview(showNewAlerts: true);
     });
   }
 

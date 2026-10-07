@@ -65,13 +65,21 @@ public class TransporterController {
     }
 
     private Map<String, Object> orderSummary(Order order) {
+        String sellerName = order.getProduct().getFarmer() != null ? order.getProduct().getFarmer().getFullName() : "Unknown Farmer";
+        String origin = order.getProduct().getLocation() != null ? order.getProduct().getLocation() : "Farm Gate";
+        
         return Map.of(
-                "orderCode", order.getOrderCode(),
-                "productTitle", order.getProduct().getTitle(),
-                "quantity", order.getQuantity(),
-                "itemCost", order.getItemCost(),
-                "transportFee", order.getTransportFee(),
-                "deliveryAddress", order.getDeliveryAddress(),
+                "id", order.getOrderCode(),
+                "type", "Dry/Cold Cargo",
+                "priority", "Standard",
+                "price", order.getTransportFee() != null ? order.getTransportFee().toString() : "0",
+                "title", order.getQuantity() + " kg " + order.getProduct().getTitle(),
+                "seller", sellerName,
+                "pickup", "Ready for pickup",
+                "distance", "Distance est. by routing",
+                "origin", origin,
+                "destination", order.getDeliveryAddress() != null ? order.getDeliveryAddress() : "Buyer Location",
+                "image", "assets/images/abstract_background_1.jpg",
                 "status", order.getEscrowStatus().name());
     }
 }
