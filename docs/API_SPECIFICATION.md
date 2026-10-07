@@ -165,16 +165,16 @@ Dashboard quote queues:
 
 ### 🌡️ 2.5 IoT Telemetry Ingestion (`TelemetryController.java`)
 
-#### `POST /api/v1/telemetry/log`
-- **Access**: Public / Device Node
+#### `POST /api/v1/telemetry`
+- **Access**: Authenticated device/client
 - **Description**: Ingests sensor data (temperature, humidity, gas level), checks safety thresholds, and stores telemetry log.
 
-#### `GET /api/v1/telemetry/node/{nodeId}/latest`
+#### `GET /api/v1/telemetry/node/{nodeId}`
 - **Access**: Authenticated users
 - **Description**: Retrieves latest 50 telemetry readings for a specific storage node.
 
 #### `GET /api/v1/telemetry/alerts/stream`
-- **Access**: Authenticated users
+- **Access**: `AGRONOMIST`
 - **Description**: Server-Sent Events (SSE) stream delivering real-time storage environmental threshold breaches and decay risk warnings.
 
 #### Agronomist telemetry and equipment requests
@@ -194,15 +194,13 @@ Supported actions are `AERATION_START` and `UV_DECONTAMINATION`. A successful re
 
 ### 🤖 2.6 Domain-Guarded AI Assistant (`AgroAIController.java`)
 
-#### `POST /api/v1/ai/query` or `POST /api/v1/ai/agro-assistant`
+#### `POST /api/v1/ai/query`
 - **Access**: Authenticated users
-- **Description**: Passes user query through agricultural domain guardrails (`AgroAIService.java`), performs `pgvector` semantic retrieval against FAO/USDA reference texts, and returns grounded advisory responses with official citations or out-of-scope rejection messages.
+- **Description**: Applies the agricultural-domain keyword guard, then keyword-matches against published Agronomist guides. Matching guide text and source metadata are returned without LLM generation or vector search.
 - **Request Body**:
 ```json
 {
-  "query": "What is the optimal relative humidity for storing plantains?",
-  "userId": 1,
-  "context": "storage_conservation"
+  "query": "How should maize be stored after harvest?"
 }
 ```
 

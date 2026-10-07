@@ -47,10 +47,18 @@ public class TelemetryController {
     // POST /api/v1/telemetry — ESP32 Sensor Hardware Payload Ingestion
     @PostMapping
     public ResponseEntity<?> ingestTelemetry(@RequestBody Map<String, Object> payload) {
-        String nodeId = (String) payload.get("nodeId");
-        Float temp = ((Number) payload.get("temp")).floatValue();
-        Float humidity = ((Number) payload.get("humidity")).floatValue();
-        Integer gas = ((Number) payload.get("gas")).intValue();
+        Object nodeIdValue = payload.get("nodeId");
+        Number temperatureValue = firstNumber(payload, "temperature", "temp");
+        Number humidityValue = firstNumber(payload, "humidity");
+        Number gasValue = firstNumber(payload, "gasLevel", "gas");
+        if (!(nodeIdValue instanceof String nodeId) || nodeId.isBlank()
+                || temperatureValue == null || humidityValue == null || gasValue == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "nodeId is required, along with numeric temperature, humidity, and gasLevel values."));
+        }
+        Float temp = temperatureValue.floatValue();
+        Float humidity = humidityValue.floatValue();
+        Integer gas = gasValue.intValue();
 
         // Safety Threshold Evaluation (FAO Crop Storage Standards)
         boolean alert = temp > 30.0f || humidity > 85.0f || gas > 400;
@@ -70,6 +78,16 @@ public class TelemetryController {
             publishAlert(saved);
         }
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    }
+
+    private static Number firstNumber(Map<String, Object> payload, String... keys) {
+        for (String key : keys) {
+            Object value = payload.get(key);
+            if (value instanceof Number number) {
+                return number;
+            }
+        }
+        return null;
     }
 
     @GetMapping(value = "/alerts/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

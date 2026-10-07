@@ -38,7 +38,7 @@ public class KnowledgeEmbedding {
     @Column(name = "content_chunk", nullable = false, columnDefinition = "TEXT") // Full text capacity
     private String contentChunk;
 
-    @Column(name = "status", nullable = false, length = 20)
+    @Column(name = "status", length = 20)
     private String status;
 
     @Column(name = "created_by", length = 100)

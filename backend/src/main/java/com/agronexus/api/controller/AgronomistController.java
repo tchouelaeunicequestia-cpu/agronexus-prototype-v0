@@ -92,7 +92,7 @@ public class AgronomistController {
         response.put("sourceAgency", guide.getSourceAgency());
         response.put("category", guide.getCategory());
         response.put("content", guide.getContentChunk());
-        response.put("status", guide.getStatus());
+        response.put("status", guide.getStatus() == null ? "DRAFT" : guide.getStatus());
         response.put("createdAt", guide.getCreatedAt());
         return response;
     }

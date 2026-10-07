@@ -88,7 +88,7 @@ public class AiAssistantController {
                 .map(match -> match.guide().getContentChunk())
                 .collect(Collectors.joining("\n\n"));
         String citations = matches.stream()
-                .map(match -> match.guide().getTitle() + " — " + match.guide().getSourceAgency())
+                .map(match -> match.guide().getTitle() + " - " + match.guide().getSourceAgency())
                 .collect(Collectors.joining("; "));
         Map<String, Object> response = new LinkedHashMap<>();
         response.put("status", "APPROVED");
