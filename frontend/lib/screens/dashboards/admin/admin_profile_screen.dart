@@ -1,4 +1,5 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -167,7 +168,8 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFFFFB4AB),
                     side: const BorderSide(color: Color(0xFF93000A)),
-                    backgroundColor: const Color(0xFF410002).withValues(alpha: 0.3),
+                    backgroundColor: const Color(0xFF410002)
+                        .withValues(alpha: 0.3),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -251,7 +253,9 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                       decoration: BoxDecoration(
                         color: _primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: _primary.withValues(alpha: 0.2)),
+                        border: Border.all(
+                          color: _primary.withValues(alpha: 0.2),
+                        ),
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
@@ -328,7 +332,9 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                 decoration: BoxDecoration(
                   color: _surface,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.1),
+                  ),
                 ),
                 child: Icon(icon, color: _primary, size: 20),
               ),
@@ -353,11 +359,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                   ],
                 ),
               ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: _muted,
-                size: 20,
-              ),
+              const Icon(Icons.chevron_right_rounded, color: _muted, size: 20),
             ],
           ),
         ),
@@ -379,7 +381,10 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: _surface,
-          title: const Text('Personal information', style: TextStyle(color: _text)),
+          title: const Text(
+            'Personal information',
+            style: TextStyle(color: _text),
+          ),
           content: Form(
             key: formKey,
             child: SingleChildScrollView(
@@ -393,8 +398,12 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                     decoration: InputDecoration(
                       labelText: 'Full name',
                       labelStyle: const TextStyle(color: _muted),
-                      enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: _muted)),
-                      focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: _primary)),
+                      enabledBorder: const UnderlineInputBorder(
+                        borderSide: BorderSide(color: _muted),
+                      ),
+                      focusedBorder: const UnderlineInputBorder(
+                        borderSide: BorderSide(color: _primary),
+                      ),
                     ),
                     validator: (value) => value == null || value.trim().isEmpty
                         ? 'Enter your full name'
@@ -410,8 +419,12 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                       helperText: 'Email cannot be changed',
                       labelStyle: const TextStyle(color: _muted),
                       helperStyle: const TextStyle(color: _muted),
-                      enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: _muted)),
-                      focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: _primary)),
+                      enabledBorder: const UnderlineInputBorder(
+                        borderSide: BorderSide(color: _muted),
+                      ),
+                      focusedBorder: const UnderlineInputBorder(
+                        borderSide: BorderSide(color: _primary),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -422,8 +435,12 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                     decoration: InputDecoration(
                       labelText: 'Phone number',
                       labelStyle: const TextStyle(color: _muted),
-                      enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: _muted)),
-                      focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: _primary)),
+                      enabledBorder: const UnderlineInputBorder(
+                        borderSide: BorderSide(color: _muted),
+                      ),
+                      focusedBorder: const UnderlineInputBorder(
+                        borderSide: BorderSide(color: _primary),
+                      ),
                     ),
                     validator: (value) => value == null || value.trim().isEmpty
                         ? 'Enter your phone number'
@@ -470,12 +487,18 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                         );
                       }
                     },
-              style: FilledButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.black),
+              style: FilledButton.styleFrom(
+                backgroundColor: _primary,
+                foregroundColor: Colors.black,
+              ),
               child: saving
                   ? const SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.black,
+                      ),
                     )
                   : const Text('Save'),
             ),
@@ -503,9 +526,11 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
   }
 
   void _showUnavailableMessage(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message, style: const TextStyle(color: _text)),
-      backgroundColor: _surface,
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: const TextStyle(color: _text)),
+        backgroundColor: _surface,
+      ),
+    );
   }
 }

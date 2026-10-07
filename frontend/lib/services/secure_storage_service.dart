@@ -25,12 +25,15 @@ class SecureStorageService {
     if (email != null) await _storage.write(key: _userEmailKey, value: email);
   }
 
-  Future<String?> getAccessToken() async => await _storage.read(key: _accessTokenKey);
-  Future<String?> getRefreshToken() async => await _storage.read(key: _refreshTokenKey);
+  Future<String?> getAccessToken() async =>
+      await _storage.read(key: _accessTokenKey);
+  Future<String?> getRefreshToken() async =>
+      await _storage.read(key: _refreshTokenKey);
   Future<String?> getUserRole() async => await _storage.read(key: _userRoleKey);
   Future<String?> getUserId() async => await _storage.read(key: _userIdKey);
   Future<String?> getUserName() async => await _storage.read(key: _userNameKey);
-  Future<String?> getUserEmail() async => await _storage.read(key: _userEmailKey);
+  Future<String?> getUserEmail() async =>
+      await _storage.read(key: _userEmailKey);
 
   Future<void> clearSession() async {
     await _storage.deleteAll();

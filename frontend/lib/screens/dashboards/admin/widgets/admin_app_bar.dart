@@ -1,15 +1,12 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final VoidCallback? onHaltPressed;
 
-  const AdminAppBar({
-    super.key,
-    required this.title,
-    this.onHaltPressed,
-  });
+  const AdminAppBar({super.key, required this.title, this.onHaltPressed});
 
   @override
   Size get preferredSize => const Size.fromHeight(64);
@@ -38,7 +35,11 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
                   color: const Color(0xFF93000A).withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.gpp_maybe, color: Color(0xFFFFB4AB), size: 24),
+                child: const Icon(
+                  Icons.gpp_maybe,
+                  color: Color(0xFFFFB4AB),
+                  size: 24,
+                ),
               ),
               const SizedBox(width: 12),
               const Expanded(
@@ -60,7 +61,11 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
             children: [
               const Text(
                 'Are you sure you want to trigger an emergency freeze on the AgroNexus Central Cameroon mesh?',
-                style: TextStyle(color: Color(0xFFBBCABF), fontSize: 13, height: 1.4),
+                style: TextStyle(
+                  color: Color(0xFFBBCABF),
+                  fontSize: 13,
+                  height: 1.4,
+                ),
               ),
               const SizedBox(height: 12),
               Container(
@@ -73,11 +78,20 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
                 child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('• 142 Escrow smart contracts will freeze', style: TextStyle(color: Color(0xFFFFB4AB), fontSize: 11)),
+                    Text(
+                      '• 142 Escrow smart contracts will freeze',
+                      style: TextStyle(color: Color(0xFFFFB4AB), fontSize: 11),
+                    ),
                     SizedBox(height: 4),
-                    Text('• ESP32 edge broker ingestion paused', style: TextStyle(color: Color(0xFFFFB4AB), fontSize: 11)),
+                    Text(
+                      '• ESP32 edge broker ingestion paused',
+                      style: TextStyle(color: Color(0xFFFFB4AB), fontSize: 11),
+                    ),
                     SizedBox(height: 4),
-                    Text('• Central Cameroon mesh fail-safe engaged', style: TextStyle(color: Color(0xFFFFB4AB), fontSize: 11)),
+                    Text(
+                      '• Central Cameroon mesh fail-safe engaged',
+                      style: TextStyle(color: Color(0xFFFFB4AB), fontSize: 11),
+                    ),
                   ],
                 ),
               ),
@@ -86,13 +100,18 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel', style: TextStyle(color: Color(0xFFBBCABF))),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Color(0xFFBBCABF)),
+              ),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF93000A),
                 foregroundColor: const Color(0xFFFFDAD6),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
               onPressed: () {
                 Navigator.pop(ctx);
@@ -100,12 +119,18 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
                   const SnackBar(
                     content: Row(
                       children: [
-                        Icon(Icons.warning_amber_rounded, color: Color(0xFFFFB4AB)),
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          color: Color(0xFFFFB4AB),
+                        ),
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             'EMERGENCY PLATFORM HALT INITIATED: Central nodes locked.',
-                            style: TextStyle(color: Color(0xFFFFDAD6), fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              color: Color(0xFFFFDAD6),
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
@@ -115,7 +140,10 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
                   ),
                 );
               },
-              child: const Text('CONFIRM HALT', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: const Text(
+                'CONFIRM HALT',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         ),
@@ -204,7 +232,10 @@ class AdminAppBar extends StatelessWidget implements PreferredSizeWidget {
                     onTap: () => _showHaltDialog(context),
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFF93000A).withValues(alpha: 0.4),
                         borderRadius: BorderRadius.circular(8),

@@ -52,7 +52,8 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen> {
       body: Stack(
         children: [
           Positioned.fill(
-            child: Image.asset('assets/images/abstract_background_1.jpg',
+            child: Image.asset(
+              'assets/images/abstract_background_1.jpg',
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) =>
                   Container(color: const Color(0xFF0F382C)),

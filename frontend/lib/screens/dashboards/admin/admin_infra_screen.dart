@@ -1,6 +1,7 @@
-
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:frontend/services/api_service.dart';
+
 import 'widgets/admin_app_bar.dart';
 
 class AdminInfraScreen extends StatefulWidget {
@@ -24,7 +25,9 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
 
   Future<void> _fetchNodeAlerts() async {
     try {
-      final res = await ApiService.authenticatedRequest('/api/v1/admin/infra/status');
+      final res = await ApiService.authenticatedRequest(
+        '/api/v1/admin/infra/status',
+      );
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         if (data is Map<String, dynamic> && data['activeNodes'] != null) {
@@ -32,7 +35,7 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
             setState(() {
               _activeNodes = (data['activeNodes'] as num).toInt();
               // Total nodes logic here could be a simple calc or backend driven
-              _totalNodes = _activeNodes + 2; 
+              _totalNodes = _activeNodes + 2;
             });
           }
         }
@@ -48,7 +51,9 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
         _isPinging = false;
         _latencyMs = 22;
       });
-      _showToast('Ping packet burst broadcasted to 144 nodes. Mesh latency: 22ms.');
+      _showToast(
+        'Ping packet burst broadcasted to 144 nodes. Mesh latency: 22ms.',
+      );
     });
   }
 
@@ -62,7 +67,10 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
           children: [
             Icon(Icons.data_object, color: Color(0xFF45DFA4)),
             SizedBox(width: 8),
-            Text('Telemetry Syslog (JSON)', style: TextStyle(color: Color(0xFFDAE2FD), fontSize: 16)),
+            Text(
+              'Telemetry Syslog (JSON)',
+              style: TextStyle(color: Color(0xFFDAE2FD), fontSize: 16),
+            ),
           ],
         ),
         content: Container(
@@ -85,7 +93,11 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
               '    {"node": "ESP32-12", "rssi_dbm": -82, "status": "MESH_DIVERTED"}\n'
               '  ]\n'
               '}',
-              style: TextStyle(color: Color(0xFF4EDEA3), fontSize: 11, fontFamily: 'monospace'),
+              style: TextStyle(
+                color: Color(0xFF4EDEA3),
+                fontSize: 11,
+                fontFamily: 'monospace',
+              ),
             ),
           ),
         ),
@@ -97,7 +109,9 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
             ),
             onPressed: () {
               Navigator.pop(ctx);
-              _showToast('Packaging telemetry JSON payload for regional nodes... Download ready.');
+              _showToast(
+                'Packaging telemetry JSON payload for regional nodes... Download ready.',
+              );
             },
             icon: const Icon(Icons.download, size: 16),
             label: const Text('Export JSON Payload'),
@@ -128,11 +142,25 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
               children: [
                 const Icon(Icons.warning, color: Color(0xFFFFB4AB)),
                 const SizedBox(width: 8),
-                Text('Diagnostic Telemetry: $node', style: const TextStyle(color: Color(0xFFDAE2FD), fontSize: 16, fontWeight: FontWeight.bold)),
+                Text(
+                  'Diagnostic Telemetry: $node',
+                  style: const TextStyle(
+                    color: Color(0xFFDAE2FD),
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 12),
-            Text(details, style: const TextStyle(color: Color(0xFFBBCABF), fontSize: 13, height: 1.4)),
+            Text(
+              details,
+              style: const TextStyle(
+                color: Color(0xFFBBCABF),
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(12),
@@ -145,24 +173,61 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Sensor Model:', style: TextStyle(color: Color(0xFF86948A), fontSize: 12)),
-                      Text('MQ-135 Gas / Ethylene', style: TextStyle(color: Color(0xFFDAE2FD), fontSize: 12, fontWeight: FontWeight.bold)),
+                      Text(
+                        'Sensor Model:',
+                        style: TextStyle(
+                          color: Color(0xFF86948A),
+                          fontSize: 12,
+                        ),
+                      ),
+                      Text(
+                        'MQ-135 Gas / Ethylene',
+                        style: TextStyle(
+                          color: Color(0xFFDAE2FD),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                   SizedBox(height: 6),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Safe Threshold:', style: TextStyle(color: Color(0xFF86948A), fontSize: 12)),
-                      Text('< 200 PPM FAO Safe', style: TextStyle(color: Color(0xFF4EDEA3), fontSize: 12)),
+                      Text(
+                        'Safe Threshold:',
+                        style: TextStyle(
+                          color: Color(0xFF86948A),
+                          fontSize: 12,
+                        ),
+                      ),
+                      Text(
+                        '< 200 PPM FAO Safe',
+                        style: TextStyle(
+                          color: Color(0xFF4EDEA3),
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                   ),
                   SizedBox(height: 6),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Action Dispatched:', style: TextStyle(color: Color(0xFF86948A), fontSize: 12)),
-                      Text('Auto-Ventilation Fans ON', style: TextStyle(color: Color(0xFFFFB95F), fontSize: 12)),
+                      Text(
+                        'Action Dispatched:',
+                        style: TextStyle(
+                          color: Color(0xFF86948A),
+                          fontSize: 12,
+                        ),
+                      ),
+                      Text(
+                        'Auto-Ventilation Fans ON',
+                        style: TextStyle(
+                          color: Color(0xFFFFB95F),
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -233,14 +298,21 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFF060E20),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Row(
                           children: [
-                            Icon(Icons.circle, color: Color(0xFF4EDEA3), size: 6),
+                            Icon(
+                              Icons.circle,
+                              color: Color(0xFF4EDEA3),
+                              size: 6,
+                            ),
                             SizedBox(width: 6),
                             Text(
                               'ALL SYSTEMS NOMINAL • 99.98% UPTIME',
@@ -258,7 +330,13 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
                         children: [
                           Icon(Icons.sync, color: Color(0xFF4EDEA3), size: 14),
                           SizedBox(width: 4),
-                          Text('15s Cycle', style: TextStyle(color: Color(0xFFBBCABF), fontSize: 11)),
+                          Text(
+                            '15s Cycle',
+                            style: TextStyle(
+                              color: Color(0xFFBBCABF),
+                              fontSize: 11,
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -280,7 +358,10 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
                       SizedBox(width: 4),
                       Text(
                         'Bafia, Yaoundé, Obala, Monatele Hubs',
-                        style: TextStyle(color: Color(0xFFBBCABF), fontSize: 12),
+                        style: TextStyle(
+                          color: Color(0xFFBBCABF),
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
@@ -298,15 +379,34 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Active Hardware Nodes', style: TextStyle(color: Color(0xFFBBCABF), fontSize: 11)),
+                              const Text(
+                                'Active Hardware Nodes',
+                                style: TextStyle(
+                                  color: Color(0xFFBBCABF),
+                                  fontSize: 11,
+                                ),
+                              ),
                               const SizedBox(height: 4),
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.baseline,
                                 textBaseline: TextBaseline.alphabetic,
                                 children: [
-                                  Text('$_activeNodes', style: const TextStyle(color: Color(0xFF4EDEA3), fontSize: 20, fontWeight: FontWeight.bold)),
+                                  Text(
+                                    '$_activeNodes',
+                                    style: const TextStyle(
+                                      color: Color(0xFF4EDEA3),
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                   const SizedBox(width: 4),
-                                  Text('/ $_totalNodes Online', style: const TextStyle(color: Color(0xFFBBCABF), fontSize: 11)),
+                                  Text(
+                                    '/ $_totalNodes Online',
+                                    style: const TextStyle(
+                                      color: Color(0xFFBBCABF),
+                                      fontSize: 11,
+                                    ),
+                                  ),
                                 ],
                               ),
                               const SizedBox(height: 6),
@@ -315,12 +415,20 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
                                 child: LinearProgressIndicator(
                                   value: _activeNodes / _totalNodes,
                                   backgroundColor: const Color(0xFF2D3449),
-                                  valueColor: const AlwaysStoppedAnimation(Color(0xFF4EDEA3)),
+                                  valueColor: const AlwaysStoppedAnimation(
+                                    Color(0xFF4EDEA3),
+                                  ),
                                   minHeight: 4,
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              const Text('98.6% Availability', style: TextStyle(color: Color(0xFF4EDEA3), fontSize: 10)),
+                              const Text(
+                                '98.6% Availability',
+                                style: TextStyle(
+                                  color: Color(0xFF4EDEA3),
+                                  fontSize: 10,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -336,15 +444,34 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('API Ingestion Latency', style: TextStyle(color: Color(0xFFBBCABF), fontSize: 11)),
+                              const Text(
+                                'API Ingestion Latency',
+                                style: TextStyle(
+                                  color: Color(0xFFBBCABF),
+                                  fontSize: 11,
+                                ),
+                              ),
                               const SizedBox(height: 4),
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.baseline,
                                 textBaseline: TextBaseline.alphabetic,
                                 children: [
-                                  Text('$_latencyMs', style: const TextStyle(color: Color(0xFF45DFA4), fontSize: 20, fontWeight: FontWeight.bold)),
+                                  Text(
+                                    '$_latencyMs',
+                                    style: const TextStyle(
+                                      color: Color(0xFF45DFA4),
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                   const SizedBox(width: 4),
-                                  const Text('ms', style: TextStyle(color: Color(0xFFBBCABF), fontSize: 11)),
+                                  const Text(
+                                    'ms',
+                                    style: TextStyle(
+                                      color: Color(0xFFBBCABF),
+                                      fontSize: 11,
+                                    ),
+                                  ),
                                 ],
                               ),
                               const SizedBox(height: 6),
@@ -353,12 +480,20 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
                                 child: const LinearProgressIndicator(
                                   value: 0.48,
                                   backgroundColor: Color(0xFF2D3449),
-                                  valueColor: AlwaysStoppedAnimation(Color(0xFF45DFA4)),
+                                  valueColor: AlwaysStoppedAnimation(
+                                    Color(0xFF45DFA4),
+                                  ),
                                   minHeight: 4,
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              const Text('Target <50ms', style: TextStyle(color: Color(0xFFBBCABF), fontSize: 10)),
+                              const Text(
+                                'Target <50ms',
+                                style: TextStyle(
+                                  color: Color(0xFFBBCABF),
+                                  fontSize: 10,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -381,11 +516,21 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
                     SizedBox(width: 6),
                     Text(
                       'Microservice & Data Fabric',
-                      style: TextStyle(color: Color(0xFFDAE2FD), fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: Color(0xFFDAE2FD),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
-                Text('4 Core Clusters', style: TextStyle(color: const Color(0xFFBBCABF).withValues(alpha: 0.8), fontSize: 11)),
+                Text(
+                  '4 Core Clusters',
+                  style: TextStyle(
+                    color: const Color(0xFFBBCABF).withValues(alpha: 0.8),
+                    fontSize: 11,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 10),
@@ -451,11 +596,21 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
                     SizedBox(width: 6),
                     Text(
                       'Mesh Geographic Spread',
-                      style: TextStyle(color: Color(0xFFDAE2FD), fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: Color(0xFFDAE2FD),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
-                Text('Cameroon Belt', style: TextStyle(color: const Color(0xFFBBCABF).withValues(alpha: 0.8), fontSize: 11)),
+                Text(
+                  'Cameroon Belt',
+                  style: TextStyle(
+                    color: const Color(0xFFBBCABF).withValues(alpha: 0.8),
+                    fontSize: 11,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 10),
@@ -473,7 +628,8 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
                   Image.network(
                     'https://lh3.googleusercontent.com/aida-public/AB6AXuCnR6mv8IeM8FoKo2M7gJsltSwSVhpashkBt1G4TO8xWczv7LYQaJVni-6kZlxJSSI-Rr6qwZFlt8642jpFcvugRn7FPTwDAk-r9Uuwi-Ul2ZWQtSGH6hI_wbupcFOiHr8e18lzhcYzLk5wipa2oNUdnHKTBxKTVXHQHlGz_4GovMKA65PzOskGyJZ0k2rQDWZ8kBmi-8UwgsM0tfDmCedtH9iqiQlPWEZTSg4ZPVZ1UaRuE6hvIxIB',
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(color: const Color(0xFF131B2E)),
+                    errorBuilder: (_, __, ___) =>
+                        Container(color: const Color(0xFF131B2E)),
                   ),
                   Container(
                     decoration: BoxDecoration(
@@ -492,26 +648,50 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF0B1326).withValues(alpha: 0.9),
+                            color: const Color(0xFF0B1326)
+                                .withValues(alpha: 0.9),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Row(
                             children: [
-                              Icon(Icons.circle, color: Color(0xFF4EDEA3), size: 6),
+                              Icon(
+                                Icons.circle,
+                                color: Color(0xFF4EDEA3),
+                                size: 6,
+                              ),
                               SizedBox(width: 6),
-                              Text('Bafia • Obala • Yaoundé Active', style: TextStyle(color: Color(0xFFDAE2FD), fontSize: 11)),
+                              Text(
+                                'Bafia • Obala • Yaoundé Active',
+                                style: TextStyle(
+                                  color: Color(0xFFDAE2FD),
+                                  fontSize: 11,
+                                ),
+                              ),
                             ],
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF0B1326).withValues(alpha: 0.9),
+                            color: const Color(0xFF0B1326)
+                                .withValues(alpha: 0.9),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Text('2 Warning Latches', style: TextStyle(color: Color(0xFFBBCABF), fontSize: 11)),
+                          child: const Text(
+                            '2 Warning Latches',
+                            style: TextStyle(
+                              color: Color(0xFFBBCABF),
+                              fontSize: 11,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -532,11 +712,22 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
                     SizedBox(width: 6),
                     Text(
                       'Physical Node Alerts (2 Active)',
-                      style: TextStyle(color: Color(0xFFDAE2FD), fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: Color(0xFFDAE2FD),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
-                const Text('Priority Triage', style: TextStyle(color: Color(0xFFFFB4AB), fontSize: 11, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Priority Triage',
+                  style: TextStyle(
+                    color: Color(0xFFFFB4AB),
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 10),
@@ -547,7 +738,9 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
               decoration: BoxDecoration(
                 color: const Color(0xFF93000A).withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFF93000A).withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: const Color(0xFF93000A).withValues(alpha: 0.3),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -557,21 +750,39 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
                     children: [
                       const Row(
                         children: [
-                          Icon(Icons.emergency, color: Color(0xFFFFB4AB), size: 18),
+                          Icon(
+                            Icons.emergency,
+                            color: Color(0xFFFFB4AB),
+                            size: 18,
+                          ),
                           SizedBox(width: 6),
                           Text(
                             'Node #ESP32-MB04',
-                            style: TextStyle(color: Color(0xFFFFB4AB), fontSize: 13, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              color: Color(0xFFFFB4AB),
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFF93000A),
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: const Text('Depot Hazard', style: TextStyle(color: Color(0xFFFFDAD6), fontSize: 10, fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'Depot Hazard',
+                          style: TextStyle(
+                            color: Color(0xFFFFDAD6),
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -588,18 +799,35 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
                         children: [
                           Icon(Icons.air, color: Color(0xFFFFB4AB), size: 14),
                           SizedBox(width: 4),
-                          Text('Automated Desiccation Triggered', style: TextStyle(color: Color(0xFFFFB4AB), fontSize: 11)),
+                          Text(
+                            'Automated Desiccation Triggered',
+                            style: TextStyle(
+                              color: Color(0xFFFFB4AB),
+                              fontSize: 11,
+                            ),
+                          ),
                         ],
                       ),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF171F33),
                           foregroundColor: const Color(0xFFDAE2FD),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
-                        onPressed: () => _showInspectModal('Node #ESP32-MB04', 'Mbalmayo Silo #3 registered 385 PPM ethylene accumulation at 13:40 UTC.'),
-                        child: const Text('Inspect', style: TextStyle(fontSize: 11)),
+                        onPressed: () => _showInspectModal(
+                          'Node #ESP32-MB04',
+                          'Mbalmayo Silo #3 registered 385 PPM ethylene accumulation at 13:40 UTC.',
+                        ),
+                        child: const Text(
+                          'Inspect',
+                          style: TextStyle(fontSize: 11),
+                        ),
                       ),
                     ],
                   ),
@@ -615,7 +843,9 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
               decoration: BoxDecoration(
                 color: const Color(0xFFE29100).withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFFFB95F).withValues(alpha: 0.25)),
+                border: Border.all(
+                  color: const Color(0xFFFFB95F).withValues(alpha: 0.25),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -625,21 +855,39 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
                     children: [
                       const Row(
                         children: [
-                          Icon(Icons.wifi_tethering_error, color: Color(0xFFFFB95F), size: 18),
+                          Icon(
+                            Icons.wifi_tethering_error,
+                            color: Color(0xFFFFB95F),
+                            size: 18,
+                          ),
                           SizedBox(width: 6),
                           Text(
                             'Node #ESP32-12',
-                            style: TextStyle(color: Color(0xFFFFB95F), fontSize: 13, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              color: Color(0xFFFFB95F),
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFE29100).withValues(alpha: 0.4),
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: const Text('Mesh Diverted', style: TextStyle(color: Color(0xFFFFDDB8), fontSize: 10, fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'Mesh Diverted',
+                          style: TextStyle(
+                            color: Color(0xFFFFDDB8),
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -654,22 +902,42 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
                     children: [
                       const Row(
                         children: [
-                          Icon(Icons.alt_route, color: Color(0xFFFFB95F), size: 14),
+                          Icon(
+                            Icons.alt_route,
+                            color: Color(0xFFFFB95F),
+                            size: 14,
+                          ),
                           SizedBox(width: 4),
-                          Text('Dynamic Mesh Failover Active', style: TextStyle(color: Color(0xFFFFB95F), fontSize: 11)),
+                          Text(
+                            'Dynamic Mesh Failover Active',
+                            style: TextStyle(
+                              color: Color(0xFFFFB95F),
+                              fontSize: 11,
+                            ),
+                          ),
                         ],
                       ),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF171F33),
                           foregroundColor: const Color(0xFFDAE2FD),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
                         onPressed: () {
-                          _showToast('Dynamic mesh routing updated: Obala rerouted via Monatele Repeater #2.');
+                          _showToast(
+                            'Dynamic mesh routing updated: Obala rerouted via Monatele Repeater #2.',
+                          );
                         },
-                        child: const Text('Reroute', style: TextStyle(fontSize: 11)),
+                        child: const Text(
+                          'Reroute',
+                          style: TextStyle(fontSize: 11),
+                        ),
                       ),
                     ],
                   ),
@@ -682,7 +950,12 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
             // 5. Administrative Diagnostic Execution Panel
             const Text(
               'Administrative Diagnostics',
-              style: TextStyle(color: Color(0xFFDAE2FD), fontSize: 16, fontWeight: FontWeight.bold, fontFamily: 'Plus Jakarta Sans'),
+              style: TextStyle(
+                color: Color(0xFFDAE2FD),
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Plus Jakarta Sans',
+              ),
             ),
             const SizedBox(height: 10),
 
@@ -694,7 +967,9 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF4EDEA3),
                   foregroundColor: const Color(0xFF003824),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   elevation: 4,
                 ),
                 onPressed: _isPinging ? null : _triggerMeshPing,
@@ -704,11 +979,24 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
                     Row(
                       children: [
                         if (_isPinging)
-                          const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF003824)))
+                          const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Color(0xFF003824),
+                            ),
+                          )
                         else
                           const Icon(Icons.network_ping, size: 22),
                         const SizedBox(width: 10),
-                        const Text('Trigger Automated Mesh Ping', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        const Text(
+                          'Trigger Automated Mesh Ping',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
                       ],
                     ),
                     const Icon(Icons.arrow_forward, size: 18),
@@ -728,7 +1016,9 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
                   backgroundColor: const Color(0xFF222A3D),
                   foregroundColor: const Color(0xFFDAE2FD),
                   side: BorderSide.none,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 onPressed: _downloadLogs,
                 child: const Row(
@@ -736,9 +1026,19 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.data_object, color: Color(0xFF45DFA4), size: 20),
+                        Icon(
+                          Icons.data_object,
+                          color: Color(0xFF45DFA4),
+                          size: 20,
+                        ),
                         SizedBox(width: 10),
-                        Text('Download Telemetry Logs (JSON/Syslog)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        Text(
+                          'Download Telemetry Logs (JSON/Syslog)',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ],
                     ),
                     Icon(Icons.download, color: Color(0xFFBBCABF), size: 18),
@@ -758,7 +1058,9 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
                   backgroundColor: const Color(0xFF222A3D),
                   foregroundColor: const Color(0xFFDAE2FD),
                   side: BorderSide.none,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 onPressed: _purgeBuffers,
                 child: const Row(
@@ -766,12 +1068,26 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.cleaning_services, color: Color(0xFFFFB95F), size: 20),
+                        Icon(
+                          Icons.cleaning_services,
+                          color: Color(0xFFFFB95F),
+                          size: 20,
+                        ),
                         SizedBox(width: 10),
-                        Text('Purge Stale Sensor Buffers', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        Text(
+                          'Purge Stale Sensor Buffers',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ],
                     ),
-                    Icon(Icons.delete_sweep, color: Color(0xFFBBCABF), size: 18),
+                    Icon(
+                      Icons.delete_sweep,
+                      color: Color(0xFFBBCABF),
+                      size: 18,
+                    ),
                   ],
                 ),
               ),
@@ -814,14 +1130,31 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
                       color: const Color(0xFF222A3D),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(icon, color: iconColor ?? const Color(0xFF4EDEA3), size: 20),
+                    child: Icon(
+                      icon,
+                      color: iconColor ?? const Color(0xFF4EDEA3),
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title, style: const TextStyle(color: Color(0xFFDAE2FD), fontSize: 13, fontWeight: FontWeight.bold)),
-                      Text(subtitle, style: const TextStyle(color: Color(0xFFBBCABF), fontSize: 11)),
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: Color(0xFFDAE2FD),
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          color: Color(0xFFBBCABF),
+                          fontSize: 11,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -829,12 +1162,18 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: (badgeColor ?? const Color(0xFF10B981)).withValues(alpha: 0.15),
+                  color: (badgeColor ?? const Color(0xFF10B981)).withValues(
+                    alpha: 0.15,
+                  ),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
                   badge,
-                  style: TextStyle(color: badgeColor ?? const Color(0xFF4EDEA3), fontSize: 10, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: badgeColor ?? const Color(0xFF4EDEA3),
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -849,8 +1188,21 @@ class _AdminInfraScreenState extends State<AdminInfraScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(stat1, style: const TextStyle(color: Color(0xFFBBCABF), fontSize: 11)),
-                Text(stat2, style: TextStyle(color: stat2Color ?? const Color(0xFF45DFA4), fontSize: 11, fontWeight: FontWeight.bold)),
+                Text(
+                  stat1,
+                  style: const TextStyle(
+                    color: Color(0xFFBBCABF),
+                    fontSize: 11,
+                  ),
+                ),
+                Text(
+                  stat2,
+                  style: TextStyle(
+                    color: stat2Color ?? const Color(0xFF45DFA4),
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
           ),

@@ -1,9 +1,11 @@
 // lib/screens/register_screen.dart
 import 'package:flutter/material.dart';
+
 import 'dart:io';
 
 import '../services/api_service.dart';
 import '../services/platform_services.dart';
+
 import 'package:image_picker/image_picker.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -108,7 +110,8 @@ class _RegisterScreenState extends State<RegisterScreen>
     super.dispose();
   }
 
-  static const int _totalSteps = 5; // Updated to include CNI document capture step
+  static const int _totalSteps =
+      5; // Updated to include CNI document capture step
 
   bool get _isRoleSelected => _selectedRole != null;
 
@@ -204,7 +207,8 @@ class _RegisterScreenState extends State<RegisterScreen>
               } catch (e) {
                 setDialogState(() {
                   scanComplete = false;
-                  statusMessage = 'Camera error: ${e.toString().replaceAll("Exception: ", "")}';
+                  statusMessage =
+                      'Camera error: ${e.toString().replaceAll("Exception: ", "")}';
                 });
               }
             }
@@ -215,10 +219,7 @@ class _RegisterScreenState extends State<RegisterScreen>
               ),
               title: const Row(
                 children: [
-                  Icon(
-                    Icons.badge_rounded,
-                    color: Color(0xFF0f5132),
-                  ),
+                  Icon(Icons.badge_rounded, color: Color(0xFF0f5132)),
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -307,12 +308,18 @@ class _RegisterScreenState extends State<RegisterScreen>
                             setDialogState(() {
                               scanComplete = false;
                               capturedImage = null;
-                              statusMessage = 'Position your ID card and tap capture.';
+                              statusMessage =
+                                  'Position your ID card and tap capture.';
                             });
                           },
-                          icon: const Icon(Icons.refresh, color: Color(0xFF0f5132)),
-                          label: const Text('Retake Photo',
-                              style: TextStyle(color: Color(0xFF0f5132))),
+                          icon: const Icon(
+                            Icons.refresh,
+                            color: Color(0xFF0f5132),
+                          ),
+                          label: const Text(
+                            'Retake Photo',
+                            style: TextStyle(color: Color(0xFF0f5132)),
+                          ),
                         ),
                     ],
                   ),
@@ -393,7 +400,8 @@ class _RegisterScreenState extends State<RegisterScreen>
               } catch (e) {
                 setDialogState(() {
                   scanComplete = false;
-                  statusMessage = 'Camera error: ${e.toString().replaceAll("Exception: ", "")}';
+                  statusMessage =
+                      'Camera error: ${e.toString().replaceAll("Exception: ", "")}';
                 });
               }
             }
@@ -495,12 +503,18 @@ class _RegisterScreenState extends State<RegisterScreen>
                             setDialogState(() {
                               scanComplete = false;
                               capturedFace = null;
-                              statusMessage = 'Position your face and tap capture.';
+                              statusMessage =
+                                  'Position your face and tap capture.';
                             });
                           },
-                          icon: const Icon(Icons.refresh, color: Color(0xFF0f5132)),
-                          label: const Text('Retake Selfie',
-                              style: TextStyle(color: Color(0xFF0f5132))),
+                          icon: const Icon(
+                            Icons.refresh,
+                            color: Color(0xFF0f5132),
+                          ),
+                          label: const Text(
+                            'Retake Selfie',
+                            style: TextStyle(color: Color(0xFF0f5132)),
+                          ),
                         ),
                     ],
                   ),
@@ -531,7 +545,9 @@ class _RegisterScreenState extends State<RegisterScreen>
                           Navigator.pop(dialogContext);
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Live Face Scan Identity Confirmed!'),
+                              content: Text(
+                                'Live Face Scan Identity Confirmed!',
+                              ),
                               backgroundColor: Color(0xFF0f5132),
                               behavior: SnackBarBehavior.floating,
                             ),
@@ -768,9 +784,7 @@ class _RegisterScreenState extends State<RegisterScreen>
     return Container(
       decoration: BoxDecoration(
         image: DecorationImage(
-          image: const AssetImage(
-            'assets/images/abstract_background_1.jpg',
-          ),
+          image: const AssetImage('assets/images/abstract_background_1.jpg'),
           fit: BoxFit.cover,
           colorFilter: ColorFilter.mode(
             Colors.black.withValues(alpha: 0.45),

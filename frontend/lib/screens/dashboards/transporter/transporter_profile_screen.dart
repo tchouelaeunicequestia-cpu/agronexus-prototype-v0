@@ -6,7 +6,8 @@ class TransporterProfileScreen extends StatefulWidget {
   const TransporterProfileScreen({super.key});
 
   @override
-  State<TransporterProfileScreen> createState() => _TransporterProfileScreenState();
+  State<TransporterProfileScreen> createState() =>
+      _TransporterProfileScreenState();
 }
 
 class _TransporterProfileScreenState extends State<TransporterProfileScreen> {
@@ -51,7 +52,8 @@ class _TransporterProfileScreenState extends State<TransporterProfileScreen> {
       body: Stack(
         children: [
           Positioned.fill(
-            child: Image.asset('assets/images/abstract_background_1.jpg',
+            child: Image.asset(
+              'assets/images/abstract_background_1.jpg',
               fit: BoxFit.cover,
               color: Colors.black.withOpacity(0.5),
               colorBlendMode: BlendMode.darken,
@@ -176,7 +178,8 @@ class _TransporterProfileScreenState extends State<TransporterProfileScreen> {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.redAccent,
                           side: const BorderSide(color: Colors.redAccent),
-                          backgroundColor: const Color(0xFF060e20).withOpacity(0.92),
+                          backgroundColor: const Color(0xFF060e20)
+                              .withOpacity(0.92),
                           padding: const EdgeInsets.symmetric(vertical: 15),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
@@ -332,7 +335,10 @@ class _TransporterProfileScreenState extends State<TransporterProfileScreen> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: const Color(0xFF131b2e),
-          title: const Text('Personal information', style: TextStyle(color: Colors.white)),
+          title: const Text(
+            'Personal information',
+            style: TextStyle(color: Colors.white),
+          ),
           content: Form(
             key: formKey,
             child: SingleChildScrollView(
@@ -343,7 +349,10 @@ class _TransporterProfileScreenState extends State<TransporterProfileScreen> {
                     controller: _nameController,
                     style: const TextStyle(color: Colors.white),
                     textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(labelText: 'Full name', labelStyle: TextStyle(color: Colors.white70)),
+                    decoration: const InputDecoration(
+                      labelText: 'Full name',
+                      labelStyle: TextStyle(color: Colors.white70),
+                    ),
                     validator: (value) => value == null || value.trim().isEmpty
                         ? 'Enter your full name'
                         : null,
@@ -380,10 +389,16 @@ class _TransporterProfileScreenState extends State<TransporterProfileScreen> {
           actions: [
             TextButton(
               onPressed: saving ? null : () => Navigator.pop(dialogContext),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white70),
+              ),
             ),
             FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: _primary, foregroundColor: const Color(0xFF003824)),
+              style: FilledButton.styleFrom(
+                backgroundColor: _primary,
+                foregroundColor: const Color(0xFF003824),
+              ),
               onPressed: saving
                   ? null
                   : () async {
@@ -408,7 +423,10 @@ class _TransporterProfileScreenState extends State<TransporterProfileScreen> {
                         setDialogState(() => saving = false);
                         if (!mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(error.toString()), backgroundColor: Colors.redAccent),
+                          SnackBar(
+                            content: Text(error.toString()),
+                            backgroundColor: Colors.redAccent,
+                          ),
                         );
                       }
                     },
@@ -416,7 +434,10 @@ class _TransporterProfileScreenState extends State<TransporterProfileScreen> {
                   ? const SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF003824)),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(0xFF003824),
+                      ),
                     )
                   : const Text('Save'),
             ),
@@ -448,7 +469,7 @@ class _TransporterProfileScreenState extends State<TransporterProfileScreen> {
       SnackBar(
         content: Text(message),
         backgroundColor: const Color(0xFF2d3449),
-      )
+      ),
     );
   }
 }

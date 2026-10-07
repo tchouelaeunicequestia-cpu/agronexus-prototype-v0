@@ -30,17 +30,15 @@ void main() {
   });
 
   group('RegisterScreen Widget Tests', () {
-    testWidgets('RegisterScreen renders UI elements properly on Desktop', (WidgetTester tester) async {
+    testWidgets('RegisterScreen renders UI elements properly on Desktop', (
+      WidgetTester tester,
+    ) async {
       tester.view.physicalSize = const Size(1280, 1000);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: RegisterScreen(),
-        ),
-      );
+      await tester.pumpWidget(const MaterialApp(home: RegisterScreen()));
       await tester.pump();
 
       // Verify Brand & Left Panel Header
@@ -73,17 +71,15 @@ void main() {
       expect(find.text('Complete Verification & Enroll'), findsOneWidget);
     });
 
-    testWidgets('Live Scan Dialog can be opened and dismissed', (WidgetTester tester) async {
+    testWidgets('Live Scan Dialog can be opened and dismissed', (
+      WidgetTester tester,
+    ) async {
       tester.view.physicalSize = const Size(1280, 1000);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: RegisterScreen(),
-        ),
-      );
+      await tester.pumpWidget(const MaterialApp(home: RegisterScreen()));
       await tester.pump();
 
       // Find the Verify Now button for Live Biometrics
@@ -94,7 +90,10 @@ void main() {
 
       // Check dialog is displayed
       expect(find.text('Live Face Scan Verification'), findsOneWidget);
-      expect(find.textContaining('biometric verification frame'), findsOneWidget);
+      expect(
+        find.textContaining('biometric verification frame'),
+        findsOneWidget,
+      );
       expect(find.text('Start Facial Scan'), findsOneWidget);
       expect(find.text('Cancel'), findsOneWidget);
 
@@ -104,17 +103,15 @@ void main() {
       expect(find.text('Live Face Scan Verification'), findsNothing);
     });
 
-    testWidgets('Location GPS Capture triggers capture and updates UI', (WidgetTester tester) async {
+    testWidgets('Location GPS Capture triggers capture and updates UI', (
+      WidgetTester tester,
+    ) async {
       tester.view.physicalSize = const Size(1280, 1000);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: RegisterScreen(),
-        ),
-      );
+      await tester.pumpWidget(const MaterialApp(home: RegisterScreen()));
       await tester.pump();
 
       // Find GPS sync button

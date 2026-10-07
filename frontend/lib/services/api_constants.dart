@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
+
 import 'runtime_platform.dart' show isAndroid;
 
 String get baseUrl {

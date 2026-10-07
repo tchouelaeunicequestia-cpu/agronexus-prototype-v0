@@ -1,5 +1,7 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
+
 import 'admin_vault_screen.dart';
 import 'admin_disputes_screen.dart';
 import 'admin_operators_screen.dart';
@@ -28,10 +30,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0B1326),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: const Color(0xFF131B2E).withValues(alpha: 0.92),
@@ -80,13 +79,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
             Icon(
               icon,
               size: 22,
-              color: isSelected ? const Color(0xFF4EDEA3) : const Color(0xFFBBCABF),
+              color: isSelected
+                  ? const Color(0xFF4EDEA3)
+                  : const Color(0xFFBBCABF),
             ),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? const Color(0xFF4EDEA3) : const Color(0xFFBBCABF),
+                color: isSelected
+                    ? const Color(0xFF4EDEA3)
+                    : const Color(0xFFBBCABF),
                 fontSize: 11,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 fontFamily: 'Inter',

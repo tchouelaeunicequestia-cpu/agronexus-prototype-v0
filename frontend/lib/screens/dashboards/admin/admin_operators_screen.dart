@@ -1,6 +1,8 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:frontend/services/api_service.dart';
+
 import 'widgets/admin_app_bar.dart';
 
 class AdminOperatorsScreen extends StatefulWidget {
@@ -13,7 +15,7 @@ class AdminOperatorsScreen extends StatefulWidget {
 class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
   bool _isLoading = false;
   List<dynamic> _backendPendingUsers = [];
-  
+
   List<Map<String, dynamic>> _priorityQueue = [];
   List<Map<String, dynamic>> _certifiedOperators = [];
 
@@ -26,36 +28,50 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
   Future<void> _fetchBackendPendingUsers() async {
     setState(() => _isLoading = true);
     try {
-      final res = await ApiService.authenticatedRequest('/api/v1/admin/pending-users');
+      final res = await ApiService.authenticatedRequest(
+        '/api/v1/admin/pending-users',
+      );
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         if (data is List) {
           setState(() {
             _backendPendingUsers = data;
             // Also populate priority queue with backend users so the UI shows them
-            _priorityQueue = data.map((u) => {
-              'id': u['id'].toString(),
-              'name': u['fullName'] ?? 'Unknown',
-              'role': u['role'] ?? 'User',
-              'auditId': '#ID-${u['id']}',
-              'license': 'Pending Verif.',
-              'type': (u['role'] ?? '').toString().toLowerCase(),
-            }).toList().cast<Map<String, dynamic>>();
+            _priorityQueue = data
+                .map(
+                  (u) => {
+                    'id': u['id'].toString(),
+                    'name': u['fullName'] ?? 'Unknown',
+                    'role': u['role'] ?? 'User',
+                    'auditId': '#ID-${u['id']}',
+                    'license': 'Pending Verif.',
+                    'type': (u['role'] ?? '').toString().toLowerCase(),
+                  },
+                )
+                .toList()
+                .cast<Map<String, dynamic>>();
           });
         }
       }
 
-      final resCert = await ApiService.authenticatedRequest('/api/v1/admin/operators/certified');
+      final resCert = await ApiService.authenticatedRequest(
+        '/api/v1/admin/operators/certified',
+      );
       if (resCert.statusCode == 200) {
         final certData = jsonDecode(resCert.body);
         if (certData is List) {
           setState(() {
-            _certifiedOperators = certData.map((u) => {
-              'name': u['fullName'] ?? 'Unknown',
-              'audit': 'ID: CERT-${u['id']} • Signed',
-              'icon': Icons.verified,
-              'color': const Color(0xFF4EDEA3),
-            }).toList().cast<Map<String, dynamic>>();
+            _certifiedOperators = certData
+                .map(
+                  (u) => {
+                    'name': u['fullName'] ?? 'Unknown',
+                    'audit': 'ID: CERT-${u['id']} • Signed',
+                    'icon': Icons.verified,
+                    'color': const Color(0xFF4EDEA3),
+                  },
+                )
+                .toList()
+                .cast<Map<String, dynamic>>();
           });
         }
       }
@@ -81,17 +97,24 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
       _backendPendingUsers.removeWhere((item) => item['id'] == backendUserId);
       _certifiedOperators.insert(0, {
         'name': name,
-        'audit': 'ID: CERT-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)} • Just Signed',
+        'audit':
+            'ID: CERT-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)} • Just Signed',
         'icon': Icons.verified,
         'color': const Color(0xFF4EDEA3),
       });
     });
 
-    _showToast('Key Issued & Broadcasted', '$name authorized under Root Protocol.');
+    _showToast(
+      'Key Issued & Broadcasted',
+      '$name authorized under Root Protocol.',
+    );
   }
 
   void _requestDoc(String name) {
-    _showToast('Doc Request Dispatched', 'Signed audit request pushed to $name terminal.');
+    _showToast(
+      'Doc Request Dispatched',
+      'Signed audit request pushed to $name terminal.',
+    );
   }
 
   void _rejectOperator(String id, String name, [int? backendUserId]) async {
@@ -109,7 +132,10 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
       _backendPendingUsers.removeWhere((item) => item['id'] == backendUserId);
     });
 
-    _showToast('Application Revoked', '$name marked non-compliant in regulatory buffer.');
+    _showToast(
+      'Application Revoked',
+      '$name marked non-compliant in regulatory buffer.',
+    );
   }
 
   void _showToast(String title, String desc) {
@@ -126,7 +152,11 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                 color: Color(0xFF4EDEA3),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.lock_open, color: Color(0xFF003824), size: 16),
+              child: const Icon(
+                Icons.lock_open,
+                color: Color(0xFF003824),
+                size: 16,
+              ),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -134,8 +164,21 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(color: Color(0xFFDAE2FD), fontWeight: FontWeight.bold, fontSize: 13)),
-                  Text(desc, style: const TextStyle(color: Color(0xFFBBCABF), fontSize: 11)),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Color(0xFFDAE2FD),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                  Text(
+                    desc,
+                    style: const TextStyle(
+                      color: Color(0xFFBBCABF),
+                      fontSize: 11,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -214,9 +257,19 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                         ),
                         const Row(
                           children: [
-                            Icon(Icons.lock_reset, color: Color(0xFFBBCABF), size: 14),
+                            Icon(
+                              Icons.lock_reset,
+                              color: Color(0xFFBBCABF),
+                              size: 14,
+                            ),
                             SizedBox(width: 4),
-                            Text('Zero-Knowledge Proofs', style: TextStyle(color: Color(0xFFBBCABF), fontSize: 11)),
+                            Text(
+                              'Zero-Knowledge Proofs',
+                              style: TextStyle(
+                                color: Color(0xFFBBCABF),
+                                fontSize: 11,
+                              ),
+                            ),
                           ],
                         ),
                       ],
@@ -234,7 +287,11 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                     const SizedBox(height: 4),
                     const Text(
                       'Review cryptographic identity bounds, postGIS perimeter vectors, and liquidity escrow stakes.',
-                      style: TextStyle(color: Color(0xFFBBCABF), fontSize: 12, height: 1.3),
+                      style: TextStyle(
+                        color: Color(0xFFBBCABF),
+                        fontSize: 12,
+                        height: 1.3,
+                      ),
                     ),
                     const SizedBox(height: 14),
                     // Metric Strips
@@ -252,15 +309,30 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                               children: [
                                 const Row(
                                   children: [
-                                    Icon(Icons.pending_actions, color: Color(0xFFFFB95F), size: 14),
+                                    Icon(
+                                      Icons.pending_actions,
+                                      color: Color(0xFFFFB95F),
+                                      size: 14,
+                                    ),
                                     SizedBox(width: 4),
-                                    Text('Pending', style: TextStyle(color: Color(0xFFFFB95F), fontSize: 11, fontWeight: FontWeight.bold)),
+                                    Text(
+                                      'Pending',
+                                      style: TextStyle(
+                                        color: Color(0xFFFFB95F),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
                                   '$totalPending',
-                                  style: const TextStyle(color: Color(0xFFDAE2FD), fontSize: 20, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                    color: Color(0xFFDAE2FD),
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ],
                             ),
@@ -279,17 +351,42 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                               children: [
                                 Row(
                                   children: [
-                                    Icon(Icons.agriculture, color: Color(0xFF45DFA4), size: 14),
+                                    Icon(
+                                      Icons.agriculture,
+                                      color: Color(0xFF45DFA4),
+                                      size: 14,
+                                    ),
                                     SizedBox(width: 4),
-                                    Text('Producers', style: TextStyle(color: Color(0xFF45DFA4), fontSize: 11, fontWeight: FontWeight.bold)),
+                                    Text(
+                                      'Producers',
+                                      style: TextStyle(
+                                        color: Color(0xFF45DFA4),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ],
                                 ),
                                 SizedBox(height: 6),
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text('412', style: TextStyle(color: Color(0xFFDAE2FD), fontSize: 20, fontWeight: FontWeight.bold)),
-                                    Text('Tier-1', style: TextStyle(color: Color(0xFFBBCABF), fontSize: 10)),
+                                    Text(
+                                      '412',
+                                      style: TextStyle(
+                                        color: Color(0xFFDAE2FD),
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Tier-1',
+                                      style: TextStyle(
+                                        color: Color(0xFFBBCABF),
+                                        fontSize: 10,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ],
@@ -309,17 +406,40 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                               children: [
                                 Row(
                                   children: [
-                                    Icon(Icons.local_shipping, color: Color(0xFF4EDEA3), size: 14),
+                                    Icon(
+                                      Icons.local_shipping,
+                                      color: Color(0xFF4EDEA3),
+                                      size: 14,
+                                    ),
                                     SizedBox(width: 4),
-                                    Text('Haulers', style: TextStyle(color: Color(0xFF4EDEA3), fontSize: 11, fontWeight: FontWeight.bold)),
+                                    Text(
+                                      'Haulers',
+                                      style: TextStyle(
+                                        color: Color(0xFF4EDEA3),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ],
                                 ),
                                 SizedBox(height: 6),
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text('89', style: TextStyle(color: Color(0xFFDAE2FD), fontSize: 20, fontWeight: FontWeight.bold)),
-                                    Icon(Icons.verified, color: Color(0xFF4EDEA3), size: 14),
+                                    Text(
+                                      '89',
+                                      style: TextStyle(
+                                        color: Color(0xFFDAE2FD),
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.verified,
+                                      color: Color(0xFF4EDEA3),
+                                      size: 14,
+                                    ),
                                   ],
                                 ),
                               ],
@@ -340,23 +460,37 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.rule_folder, color: Color(0xFF4EDEA3), size: 20),
+                      Icon(
+                        Icons.rule_folder,
+                        color: Color(0xFF4EDEA3),
+                        size: 20,
+                      ),
                       SizedBox(width: 8),
                       Text(
                         'Awaiting Audit Signature',
-                        style: TextStyle(color: Color(0xFFDAE2FD), fontSize: 16, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Color(0xFFDAE2FD),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF222A3D),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       'Priority Queue ($totalPending)',
-                      style: const TextStyle(color: Color(0xFFBBCABF), fontSize: 11),
+                      style: const TextStyle(
+                        color: Color(0xFFBBCABF),
+                        fontSize: 11,
+                      ),
                     ),
                   ),
                 ],
@@ -364,7 +498,9 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
               const SizedBox(height: 12),
 
               // Queue Item 1: Alain Kengne (Transporter)
-              ..._priorityQueue.where((item) => item['id'] == 'op-1').map((item) {
+              ..._priorityQueue.where((item) => item['id'] == 'op-1').map((
+                item,
+              ) {
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(16),
@@ -393,7 +529,10 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                                         width: 48,
                                         height: 48,
                                         color: const Color(0xFF222A3D),
-                                        child: const Icon(Icons.person, color: Color(0xFF4EDEA3)),
+                                        child: const Icon(
+                                          Icons.person,
+                                          color: Color(0xFF4EDEA3),
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -404,9 +543,15 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                                       padding: const EdgeInsets.all(2),
                                       decoration: const BoxDecoration(
                                         color: Color(0xFF4EDEA3),
-                                        borderRadius: BorderRadius.only(topLeft: Radius.circular(4)),
+                                        borderRadius: BorderRadius.only(
+                                          topLeft: Radius.circular(4),
+                                        ),
                                       ),
-                                      child: const Icon(Icons.local_shipping, size: 10, color: Color(0xFF003824)),
+                                      child: const Icon(
+                                        Icons.local_shipping,
+                                        size: 10,
+                                        color: Color(0xFF003824),
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -419,27 +564,47 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                                     children: [
                                       Text(
                                         item['name'],
-                                        style: const TextStyle(color: Color(0xFFDAE2FD), fontSize: 14, fontWeight: FontWeight.bold),
+                                        style: const TextStyle(
+                                          color: Color(0xFFDAE2FD),
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                       const SizedBox(width: 4),
-                                      const Icon(Icons.verified, color: Color(0xFF4EDEA3), size: 14),
+                                      const Icon(
+                                        Icons.verified,
+                                        color: Color(0xFF4EDEA3),
+                                        size: 14,
+                                      ),
                                     ],
                                   ),
                                   const SizedBox(height: 2),
-                                  Text(item['role'], style: const TextStyle(color: Color(0xFF45DFA4), fontSize: 11)),
+                                  Text(
+                                    item['role'],
+                                    style: const TextStyle(
+                                      color: Color(0xFF45DFA4),
+                                      fontSize: 11,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ],
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFF2D3449),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               'Audit ID: ${item['auditId']}',
-                              style: const TextStyle(color: Color(0xFFBBCABF), fontSize: 10),
+                              style: const TextStyle(
+                                color: Color(0xFFBBCABF),
+                                fontSize: 10,
+                              ),
                             ),
                           ),
                         ],
@@ -454,11 +619,24 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                         ),
                         child: Column(
                           children: [
-                            _buildAuditRow(Icons.badge, 'License Tier', item['license']),
+                            _buildAuditRow(
+                              Icons.badge,
+                              'License Tier',
+                              item['license'],
+                            ),
                             const SizedBox(height: 4),
-                            _buildAuditRow(Icons.fingerprint, 'Gov ID Hash', item['govId']),
+                            _buildAuditRow(
+                              Icons.fingerprint,
+                              'Gov ID Hash',
+                              item['govId'],
+                            ),
                             const SizedBox(height: 4),
-                            _buildAuditRow(Icons.face, 'Biometric Match', item['biometricScore'], const Color(0xFF45DFA4)),
+                            _buildAuditRow(
+                              Icons.face,
+                              'Biometric Match',
+                              item['biometricScore'],
+                              const Color(0xFF45DFA4),
+                            ),
                           ],
                         ),
                       ),
@@ -478,22 +656,42 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                                 color: const Color(0xFF171F33),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Icon(Icons.ac_unit, color: Color(0xFF4EDEA3), size: 16),
+                              child: const Icon(
+                                Icons.ac_unit,
+                                color: Color(0xFF4EDEA3),
+                                size: 16,
+                              ),
                             ),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(item['vehicle'], style: const TextStyle(color: Color(0xFFDAE2FD), fontSize: 12, fontWeight: FontWeight.bold)),
-                                  Text(item['vehicleDetails'], style: const TextStyle(color: Color(0xFF86948A), fontSize: 10)),
+                                  Text(
+                                    item['vehicle'],
+                                    style: const TextStyle(
+                                      color: Color(0xFFDAE2FD),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    item['vehicleDetails'],
+                                    style: const TextStyle(
+                                      color: Color(0xFF86948A),
+                                      fontSize: 10,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
                             Container(
                               width: 8,
                               height: 8,
-                              decoration: const BoxDecoration(color: Color(0xFF4EDEA3), shape: BoxShape.circle),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF4EDEA3),
+                                shape: BoxShape.circle,
+                              ),
                             ),
                           ],
                         ),
@@ -507,11 +705,20 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF4EDEA3),
                             foregroundColor: const Color(0xFF003824),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
-                          onPressed: () => _approveOperator(item['id'], item['name']),
+                          onPressed: () =>
+                              _approveOperator(item['id'], item['name']),
                           icon: const Icon(Icons.key, size: 16),
-                          label: const Text('Approve & Issue Cryptographic Key', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                          label: const Text(
+                            'Approve & Issue Cryptographic Key',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -523,11 +730,20 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                                 backgroundColor: const Color(0xFF2D3449),
                                 foregroundColor: const Color(0xFFDAE2FD),
                                 side: BorderSide.none,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
                               onPressed: () => _requestDoc(item['name']),
-                              icon: const Icon(Icons.replay, color: Color(0xFFFFB95F), size: 14),
-                              label: const Text('Request Doc', style: TextStyle(fontSize: 11)),
+                              icon: const Icon(
+                                Icons.replay,
+                                color: Color(0xFFFFB95F),
+                                size: 14,
+                              ),
+                              label: const Text(
+                                'Request Doc',
+                                style: TextStyle(fontSize: 11),
+                              ),
                             ),
                           ),
                           const SizedBox(width: 6),
@@ -537,11 +753,21 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                                 backgroundColor: const Color(0xFF2D3449),
                                 foregroundColor: const Color(0xFFFFB4AB),
                                 side: BorderSide.none,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
-                              onPressed: () => _rejectOperator(item['id'], item['name']),
-                              icon: const Icon(Icons.cancel, color: Color(0xFFFFB4AB), size: 14),
-                              label: const Text('Reject Application', style: TextStyle(fontSize: 11)),
+                              onPressed: () =>
+                                  _rejectOperator(item['id'], item['name']),
+                              icon: const Icon(
+                                Icons.cancel,
+                                color: Color(0xFFFFB4AB),
+                                size: 14,
+                              ),
+                              label: const Text(
+                                'Reject Application',
+                                style: TextStyle(fontSize: 11),
+                              ),
                             ),
                           ),
                         ],
@@ -552,7 +778,9 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
               }),
 
               // Queue Item 2: Lékié Hydroponic Hub (Cadastral)
-              ..._priorityQueue.where((item) => item['id'] == 'op-2').map((item) {
+              ..._priorityQueue.where((item) => item['id'] == 'op-2').map((
+                item,
+              ) {
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(16),
@@ -579,7 +807,10 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                                     width: 48,
                                     height: 48,
                                     color: const Color(0xFF222A3D),
-                                    child: const Icon(Icons.agriculture, color: Color(0xFF4EDEA3)),
+                                    child: const Icon(
+                                      Icons.agriculture,
+                                      color: Color(0xFF4EDEA3),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -587,19 +818,43 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(item['name'], style: const TextStyle(color: Color(0xFFDAE2FD), fontSize: 14, fontWeight: FontWeight.bold)),
-                                  Text(item['role'], style: const TextStyle(color: Color(0xFFBBCABF), fontSize: 11)),
+                                  Text(
+                                    item['name'],
+                                    style: const TextStyle(
+                                      color: Color(0xFFDAE2FD),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    item['role'],
+                                    style: const TextStyle(
+                                      color: Color(0xFFBBCABF),
+                                      fontSize: 11,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ],
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE29100).withValues(alpha: 0.3),
+                              color: const Color(0xFFE29100)
+                                  .withValues(alpha: 0.3),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: const Text('Cadastral', style: TextStyle(color: Color(0xFFFFB95F), fontSize: 10, fontWeight: FontWeight.bold)),
+                            child: const Text(
+                              'Cadastral',
+                              style: TextStyle(
+                                color: Color(0xFFFFB95F),
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -619,14 +874,18 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                             Image.network(
                               item['mapUrl'],
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(color: const Color(0xFF222A3D)),
+                              errorBuilder: (_, __, ___) =>
+                                  Container(color: const Color(0xFF222A3D)),
                             ),
                             Container(
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   begin: Alignment.bottomCenter,
                                   end: Alignment.topCenter,
-                                  colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
+                                  colors: [
+                                    Colors.black.withValues(alpha: 0.8),
+                                    Colors.transparent,
+                                  ],
                                 ),
                               ),
                             ),
@@ -635,22 +894,44 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                               left: 8,
                               right: 8,
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF0B1326).withValues(alpha: 0.85),
+                                  color: const Color(0xFF0B1326)
+                                      .withValues(alpha: 0.85),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Row(
                                       children: [
-                                        const Icon(Icons.polyline, color: Color(0xFF4EDEA3), size: 14),
+                                        const Icon(
+                                          Icons.polyline,
+                                          color: Color(0xFF4EDEA3),
+                                          size: 14,
+                                        ),
                                         const SizedBox(width: 4),
-                                        Text('Hash: ${item['hash']}', style: const TextStyle(color: Color(0xFF4EDEA3), fontSize: 11)),
+                                        Text(
+                                          'Hash: ${item['hash']}',
+                                          style: const TextStyle(
+                                            color: Color(0xFF4EDEA3),
+                                            fontSize: 11,
+                                          ),
+                                        ),
                                       ],
                                     ),
-                                    const Text('Polygon Valid', style: TextStyle(color: Color(0xFF45DFA4), fontSize: 11, fontWeight: FontWeight.bold)),
+                                    const Text(
+                                      'Polygon Valid',
+                                      style: TextStyle(
+                                        color: Color(0xFF45DFA4),
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -671,8 +952,21 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Facilities Active', style: TextStyle(color: Color(0xFF86948A), fontSize: 10)),
-                                  Text(item['facilities'], style: const TextStyle(color: Color(0xFFDAE2FD), fontSize: 11, fontWeight: FontWeight.bold)),
+                                  const Text(
+                                    'Facilities Active',
+                                    style: TextStyle(
+                                      color: Color(0xFF86948A),
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                  Text(
+                                    item['facilities'],
+                                    style: const TextStyle(
+                                      color: Color(0xFFDAE2FD),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -688,8 +982,21 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('ESP32 Telemetry', style: TextStyle(color: Color(0xFF86948A), fontSize: 10)),
-                                  Text(item['probes'], style: const TextStyle(color: Color(0xFF4EDEA3), fontSize: 11, fontWeight: FontWeight.bold)),
+                                  const Text(
+                                    'ESP32 Telemetry',
+                                    style: TextStyle(
+                                      color: Color(0xFF86948A),
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                  Text(
+                                    item['probes'],
+                                    style: const TextStyle(
+                                      color: Color(0xFF4EDEA3),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -704,11 +1011,20 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF4EDEA3),
                                 foregroundColor: const Color(0xFF003824),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
-                              onPressed: () => _approveOperator(item['id'], item['name']),
+                              onPressed: () =>
+                                  _approveOperator(item['id'], item['name']),
                               icon: const Icon(Icons.public, size: 16),
-                              label: const Text('Commit Boundary', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              label: const Text(
+                                'Commit Boundary',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -718,11 +1034,16 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                                 backgroundColor: const Color(0xFF2D3449),
                                 foregroundColor: const Color(0xFFFFB95F),
                                 side: BorderSide.none,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
                               onPressed: () => _requestDoc(item['name']),
                               icon: const Icon(Icons.travel_explore, size: 16),
-                              label: const Text('Flag Inspection', style: TextStyle(fontSize: 12)),
+                              label: const Text(
+                                'Flag Inspection',
+                                style: TextStyle(fontSize: 12),
+                              ),
                             ),
                           ),
                         ],
@@ -733,7 +1054,9 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
               }),
 
               // Queue Item 3: Yaoundé Supermarket Chain (Wholesale Buyer)
-              ..._priorityQueue.where((item) => item['id'] == 'op-3').map((item) {
+              ..._priorityQueue.where((item) => item['id'] == 'op-3').map((
+                item,
+              ) {
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(16),
@@ -752,28 +1075,55 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                                 width: 48,
                                 height: 48,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFFB95F).withValues(alpha: 0.15),
+                                  color: const Color(0xFFFFB95F)
+                                      .withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(Icons.storefront, color: Color(0xFFFFB95F), size: 24),
+                                child: const Icon(
+                                  Icons.storefront,
+                                  color: Color(0xFFFFB95F),
+                                  size: 24,
+                                ),
                               ),
                               const SizedBox(width: 12),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(item['name'], style: const TextStyle(color: Color(0xFFDAE2FD), fontSize: 14, fontWeight: FontWeight.bold)),
-                                  Text(item['role'], style: const TextStyle(color: Color(0xFFBBCABF), fontSize: 11)),
+                                  Text(
+                                    item['name'],
+                                    style: const TextStyle(
+                                      color: Color(0xFFDAE2FD),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    item['role'],
+                                    style: const TextStyle(
+                                      color: Color(0xFFBBCABF),
+                                      fontSize: 11,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ],
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFF2D3449),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: const Text('Escrow Stake', style: TextStyle(color: Color(0xFFFFB95F), fontSize: 10)),
+                            child: const Text(
+                              'Escrow Stake',
+                              style: TextStyle(
+                                color: Color(0xFFFFB95F),
+                                fontSize: 10,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -790,18 +1140,36 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text('Standby Escrow Buffer (BEAC)', style: TextStyle(color: Color(0xFFBBCABF), fontSize: 11)),
+                                const Text(
+                                  'Standby Escrow Buffer (BEAC)',
+                                  style: TextStyle(
+                                    color: Color(0xFFBBCABF),
+                                    fontSize: 11,
+                                  ),
+                                ),
                                 const SizedBox(height: 2),
-                                Text(item['escrowBuffer'], style: const TextStyle(color: Color(0xFFFFB95F), fontSize: 18, fontWeight: FontWeight.bold)),
+                                Text(
+                                  item['escrowBuffer'],
+                                  style: const TextStyle(
+                                    color: Color(0xFFFFB95F),
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ],
                             ),
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFFB95F).withValues(alpha: 0.15),
+                                color: const Color(0xFFFFB95F)
+                                    .withValues(alpha: 0.15),
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.account_balance_wallet, color: Color(0xFFFFB95F), size: 20),
+                              child: const Icon(
+                                Icons.account_balance_wallet,
+                                color: Color(0xFFFFB95F),
+                                size: 20,
+                              ),
                             ),
                           ],
                         ),
@@ -814,11 +1182,20 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF4EDEA3),
                                 foregroundColor: const Color(0xFF003824),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
-                              onPressed: () => _approveOperator(item['id'], item['name']),
+                              onPressed: () =>
+                                  _approveOperator(item['id'], item['name']),
                               icon: const Icon(Icons.verified, size: 16),
-                              label: const Text('Grant Tier-1 Wholesale Access', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              label: const Text(
+                                'Grant Tier-1 Wholesale Access',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -827,10 +1204,16 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                               backgroundColor: const Color(0xFF2D3449),
                               foregroundColor: const Color(0xFFBBCABF),
                               side: BorderSide.none,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
-                            onPressed: () => _rejectOperator(item['id'], item['name']),
-                            child: const Text('Decline', style: TextStyle(fontSize: 12)),
+                            onPressed: () =>
+                                _rejectOperator(item['id'], item['name']),
+                            child: const Text(
+                              'Decline',
+                              style: TextStyle(fontSize: 12),
+                            ),
                           ),
                         ],
                       ),
@@ -842,11 +1225,19 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
               // Live Backend Users Queue (if any)
               if (_backendPendingUsers.isNotEmpty) ...[
                 const SizedBox(height: 8),
-                const Text('Registered Users Awaiting Verification', style: TextStyle(color: Color(0xFFDAE2FD), fontSize: 14, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Registered Users Awaiting Verification',
+                  style: TextStyle(
+                    color: Color(0xFFDAE2FD),
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 ..._backendPendingUsers.map((user) {
                   final userId = user['id'] as int;
-                  final userName = user['fullName']?.toString() ?? 'User #$userId';
+                  final userName =
+                      user['fullName']?.toString() ?? 'User #$userId';
                   final userRole = user['role']?.toString() ?? 'MEMBER';
                   final email = user['email']?.toString() ?? '';
                   return Container(
@@ -862,20 +1253,49 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(userName, style: const TextStyle(color: Color(0xFFDAE2FD), fontWeight: FontWeight.bold, fontSize: 13)),
-                            Text('$userRole • $email', style: const TextStyle(color: Color(0xFFBBCABF), fontSize: 11)),
+                            Text(
+                              userName,
+                              style: const TextStyle(
+                                color: Color(0xFFDAE2FD),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                            Text(
+                              '$userRole • $email',
+                              style: const TextStyle(
+                                color: Color(0xFFBBCABF),
+                                fontSize: 11,
+                              ),
+                            ),
                           ],
                         ),
                         Row(
                           children: [
                             IconButton(
-                              icon: const Icon(Icons.check_circle, color: Color(0xFF4EDEA3), size: 22),
-                              onPressed: () => _approveOperator('user-$userId', userName, userId),
+                              icon: const Icon(
+                                Icons.check_circle,
+                                color: Color(0xFF4EDEA3),
+                                size: 22,
+                              ),
+                              onPressed: () => _approveOperator(
+                                'user-$userId',
+                                userName,
+                                userId,
+                              ),
                               tooltip: 'Approve & notify via email',
                             ),
                             IconButton(
-                              icon: const Icon(Icons.cancel, color: Color(0xFFFFB4AB), size: 22),
-                              onPressed: () => _rejectOperator('user-$userId', userName, userId),
+                              icon: const Icon(
+                                Icons.cancel,
+                                color: Color(0xFFFFB4AB),
+                                size: 22,
+                              ),
+                              onPressed: () => _rejectOperator(
+                                'user-$userId',
+                                userName,
+                                userId,
+                              ),
                               tooltip: 'Reject',
                             ),
                           ],
@@ -894,12 +1314,29 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.history_edu, color: Color(0xFF45DFA4), size: 18),
+                      Icon(
+                        Icons.history_edu,
+                        color: Color(0xFF45DFA4),
+                        size: 18,
+                      ),
                       SizedBox(width: 8),
-                      Text('Recently Certified Operators', style: TextStyle(color: Color(0xFFDAE2FD), fontSize: 15, fontWeight: FontWeight.bold)),
+                      Text(
+                        'Recently Certified Operators',
+                        style: TextStyle(
+                          color: Color(0xFFDAE2FD),
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
-                  Text('Live Ledger', style: TextStyle(color: const Color(0xFF4EDEA3), fontSize: 11)),
+                  Text(
+                    'Live Ledger',
+                    style: TextStyle(
+                      color: const Color(0xFF4EDEA3),
+                      fontSize: 11,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 10),
@@ -914,7 +1351,10 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                       padding: const EdgeInsets.all(12),
                       decoration: const BoxDecoration(
                         border: Border(
-                          bottom: BorderSide(color: Color(0xFF222A3D), width: 0.5),
+                          bottom: BorderSide(
+                            color: Color(0xFF222A3D),
+                            width: 0.5,
+                          ),
                         ),
                       ),
                       child: Row(
@@ -928,14 +1368,31 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                                   color: const Color(0xFF171F33),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: Icon(item['icon'] as IconData, color: item['color'] as Color, size: 20),
+                                child: Icon(
+                                  item['icon'] as IconData,
+                                  color: item['color'] as Color,
+                                  size: 20,
+                                ),
                               ),
                               const SizedBox(width: 12),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(item['name'] as String, style: const TextStyle(color: Color(0xFFDAE2FD), fontSize: 13, fontWeight: FontWeight.bold)),
-                                  Text(item['audit'] as String, style: const TextStyle(color: Color(0xFFBBCABF), fontSize: 11)),
+                                  Text(
+                                    item['name'] as String,
+                                    style: const TextStyle(
+                                      color: Color(0xFFDAE2FD),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    item['audit'] as String,
+                                    style: const TextStyle(
+                                      color: Color(0xFFBBCABF),
+                                      fontSize: 11,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ],
@@ -944,21 +1401,42 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                                  color: const Color(0xFF10B981)
+                                      .withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: const Row(
                                   children: [
-                                    Icon(Icons.circle, color: Color(0xFF4EDEA3), size: 6),
+                                    Icon(
+                                      Icons.circle,
+                                      color: Color(0xFF4EDEA3),
+                                      size: 6,
+                                    ),
                                     SizedBox(width: 4),
-                                    Text('Active', style: TextStyle(color: Color(0xFF4EDEA3), fontSize: 10, fontWeight: FontWeight.bold)),
+                                    Text(
+                                      'Active',
+                                      style: TextStyle(
+                                        color: Color(0xFF4EDEA3),
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
                               const SizedBox(height: 2),
-                              const Text('L3 Ledger', style: TextStyle(color: Color(0xFF86948A), fontSize: 10)),
+                              const Text(
+                                'L3 Ledger',
+                                style: TextStyle(
+                                  color: Color(0xFF86948A),
+                                  fontSize: 10,
+                                ),
+                              ),
                             ],
                           ),
                         ],
@@ -975,7 +1453,12 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
     );
   }
 
-  Widget _buildAuditRow(IconData icon, String label, String value, [Color? valueColor]) {
+  Widget _buildAuditRow(
+    IconData icon,
+    String label,
+    String value, [
+    Color? valueColor,
+  ]) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -983,7 +1466,10 @@ class _AdminOperatorsScreenState extends State<AdminOperatorsScreen> {
           children: [
             Icon(icon, color: const Color(0xFF86948A), size: 14),
             const SizedBox(width: 4),
-            Text(label, style: const TextStyle(color: Color(0xFFBBCABF), fontSize: 11)),
+            Text(
+              label,
+              style: const TextStyle(color: Color(0xFFBBCABF), fontSize: 11),
+            ),
           ],
         ),
         Text(
