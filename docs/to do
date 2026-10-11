@@ -1,5 +1,17 @@
-Visually verify every screen in the running Flutter app.
-Add a backend-driven list of available telemetry nodes instead of requiring manual node ID entry.
-Add telemetry charts if the backend provides enough historical data.
-Connect actual image upload behavior to AgroAI if backend support is added.
-Run broader integration tests.
+﻿## Pending tasks (updated 2026-10-07)
+
+### Code quality (warnings - not blocking)
+- Transporter waypoint screen: remove unused imports (auth_provider, draft_service)
+- Register screen: remove unused _fadeAnimation / _slideAnimation fields
+- platform_services.dart: remove unused local_auth import
+- buyer_quote_section.dart: remove unused auth_provider, draft_service, platform_services imports
+
+### Features / verification
+- Agronomist screens: visually verify all are fully dynamic (advisory, silo, guide publisher, AI sandbox)
+- Telemetry charts: add if backend provides enough historical data points
+- Image upload to AgroAI: connect actual upload behavior when backend support is added
+- Add backend-driven list of available telemetry nodes instead of manual node ID entry
+
+### Testing
+- Run broader integration tests across all role flows
+- Visually verify every screen in the running Flutter app with backend connected

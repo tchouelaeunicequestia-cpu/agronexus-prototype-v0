@@ -306,3 +306,59 @@ Updated files:
 - Maven backend compilation: **Successful**
 
 The transporter, agronomist, and admin dashboards now use real login credentials, but their full business workflows—delivery jobs, advisory requests, approvals, disputes, and administration—still need dedicated backend endpoints and screens.
+
+---
+
+## Session - 2026-10-07 (Dynamic Data Pass + Backend Runtime Fixes)
+
+### Objectives completed
+
+1. Replaced all online/placeholder images with local asset assets/images/abstract_background_1.jpg project-wide (login, register, all role dashboards).
+2. Removed all remaining static/mock data from the entire frontend - every screen now queries authenticated backend APIs with graceful loading/empty states.
+3. Backend new endpoints added to serve the now-dynamic screens.
+
+#### AdminController.java - new endpoints
+- GET /api/v1/admin/vault/logs - paginated escrow transaction log
+- GET /api/v1/admin/disputes - orders with DISPUTED escrow status
+- GET /api/v1/admin/operators/certified - all verified users (operators)
+- GET /api/v1/admin/infra/status - infra health, DB row counts, active sessions
+
+#### TransporterController.java - new endpoints
+- GET /api/v1/transporter/loads - pending freight orders available to transporter
+- GET /api/v1/transporter/active-trip - transporter's current active delivery trip
+- GET /api/v1/transporter/waybill/{orderCode} - full waybill manifest
+- POST /api/v1/transporter/handover/{orderCode}/confirm - confirm delivery and trigger escrow disbursement
+
+### Frontend screens updated to dynamic
+- admin_vault_screen.dart, admin_disputes_screen.dart, admin_operators_screen.dart, admin_infra_screen.dart
+- transporter_loads_screen.dart, transporter_trip_live_screen.dart, transporter_waybill_screen.dart
+- transporter_handover_screen.dart, transporter_profile_screen.dart
+
+### Compilation fixes (Flutter)
+- transporter_trip_live_screen.dart: Added missing ApiService import; removed const from widgets interpolating _activeTrip map values
+- transporter_waybill_screen.dart: Added UserProfile? get _currentUser state getter; removed invalid const from dynamic widgets
+- transporter_handover_screen.dart: Added UserProfile? get _currentUser state getter
+- admin_infra_screen.dart: Added missing import 'dart:convert' for jsonDecode
+
+### Compilation fixes (Backend Java)
+- AdminController.java: Added Order import; removed duplicate POST /api/v1/admin/escrow/release/{orderCode} (AdminEscrowController owns that route); restored EscrowStatus, HashMap, PostMapping imports
+- TransporterController.java: Added HashMap import; fixed Point geometry to String using String.format; replaced Map.of() (>10 args) with HashMap + map.put() calls
+
+### Key design decisions
+- const rule: Any widget interpolating a runtime/nullable map value cannot carry const. Parent Row, Column, Text, TextSpan must all be non-const.
+- State getter pattern: Use UserProfile? get _currentUser => context.read<AuthProvider>().currentUser; in StatefulWidget sub-methods instead of context.watch() outside build().
+- AdminEscrowController owns escrow disbursement. AdminController must never duplicate that route.
+
+### Final verification
+- flutter analyze: 109 info/warnings, 0 errors
+- mvn test-compile -DskipTests: BUILD SUCCESS
+- Backend starts cleanly with mvn spring-boot:run
+
+### Remaining to-do
+- Agronomist screens: verify all are fully dynamic
+- Transporter waypoint screen: remove unused imports (auth_provider, draft_service)
+- Register screen: remove unused _fadeAnimation / _slideAnimation fields
+- platform_services.dart: remove unused local_auth import
+- Telemetry charts: add when backend provides enough historical data
+- Image upload to AgroAI: connect when backend support is added
+- Run full integration test suite
