@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/config/app_assets.dart';
 import 'package:provider/provider.dart';
 
 import 'package:frontend/services/auth_provider.dart';
@@ -53,7 +54,7 @@ class _BuyerProfileScreenState extends State<BuyerProfileScreen> {
         children: [
           Positioned.fill(
             child: Image.asset(
-              'assets/images/abstract_background_1.jpg',
+              AppAssets.cover,
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) =>
                   Container(color: const Color(0xFF0F382C)),

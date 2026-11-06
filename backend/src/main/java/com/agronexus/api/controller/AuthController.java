@@ -20,6 +20,11 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.UUID;
+import java.util.Collections;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -47,13 +52,16 @@ public class AuthController {
     private final JwtService jwtService;
     private final VerificationService verificationService;
     private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
+    private final String googleClientId;
 
     public AuthController(UserRepository userRepository, JwtService jwtService,
-            VerificationService verificationService) {
+            VerificationService verificationService,
+            @org.springframework.beans.factory.annotation.Value("${agronexus.google.client-id:}") String googleClientId) {
         this.userRepository = userRepository;
         this.jwtService = jwtService;
         this.verificationService = verificationService;
         this.passwordEncoder = new BCryptPasswordEncoder(12);
+        this.googleClientId = googleClientId;
     }
 
     @PostMapping(value = "/register", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -255,23 +263,55 @@ public class AuthController {
             return ResponseEntity.badRequest().body(Map.of("error", "Google ID token is required."));
         }
 
-        // Generate email/user identity from the OAuth token payload signature
-        String email = "google_user_" + Math.abs(idToken.hashCode()) + "@agronexus.io";
-        String fullName = "Google User";
+        if (googleClientId.isBlank()) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of("error", "Google sign-in is not configured on the server."));
+        }
 
-        User user = userRepository.findByEmail(email).orElseGet(() -> {
-            User newUser = new User();
-            newUser.setEmail(email);
-            newUser.setFullName(fullName);
-            newUser.setPasswordHash(passwordEncoder.encode(UUID.randomUUID().toString()));
-            newUser.setPhoneNumber("+237600000000");
-            newUser.setNationalIdHash(hash("GOOGLE_" + System.currentTimeMillis()));
-            newUser.setRole(Role.BUYER);
-            newUser.setIsVerified(true);
-            newUser.setEmailVerified(true);
-            newUser.setPhoneVerified(true);
-            return userRepository.save(newUser);
-        });
+        final GoogleIdToken.Payload googlePayload;
+        try {
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
+                    GoogleNetHttpTransport.newTrustedTransport(),
+                    GsonFactory.getDefaultInstance())
+                    .setAudience(Collections.singletonList(googleClientId))
+                    .build();
+            GoogleIdToken verifiedToken = verifier.verify(idToken);
+            if (verifiedToken == null || !Boolean.TRUE.equals(verifiedToken.getPayload().getEmailVerified())) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Google token is invalid or the email is not verified."));
+            }
+            googlePayload = verifiedToken.getPayload();
+        } catch (Exception exception) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Google token verification failed."));
+        }
+
+        String email = googlePayload.getEmail();
+        String subject = googlePayload.getSubject();
+        String fullName = googlePayload.get("name") instanceof String name && !name.isBlank()
+                ? name
+                : email;
+
+        User user = userRepository.findByGoogleSubject(subject)
+                .orElseGet(() -> userRepository.findByEmail(email).map(existing -> {
+                    existing.setGoogleSubject(subject);
+                    existing.setEmailVerified(true);
+                    existing.setIsVerified(true);
+                    return userRepository.save(existing);
+                }).orElseGet(() -> {
+                    User newUser = new User();
+                    newUser.setEmail(email);
+                    newUser.setGoogleSubject(subject);
+                    newUser.setFullName(fullName);
+                    newUser.setPasswordHash(passwordEncoder.encode(UUID.randomUUID().toString()));
+                    newUser.setRole(Role.BUYER);
+                    newUser.setIsVerified(true);
+                    newUser.setEmailVerified(true);
+                    newUser.setPhoneVerified(false);
+                    newUser.setIdentityVerified(false);
+                    newUser.setBiometricVerified(false);
+                    return userRepository.save(newUser);
+                }));
 
         String accessToken = jwtService.generateAccessToken(user);
         RefreshToken refreshToken = jwtService.createRefreshToken(user);

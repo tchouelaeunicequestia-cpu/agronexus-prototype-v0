@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:frontend/config/app_assets.dart';
 import '../../../services/api_service.dart';
 import '../../../services/auth_provider.dart';
 import 'agronomist_advisory_screen.dart';
@@ -21,7 +22,7 @@ class AgronomistDashboard extends StatefulWidget {
 }
 
 class _AgronomistDashboardState extends State<AgronomistDashboard> {
-  static const _backgroundImage = 'assets/images/abstract_background_1.jpg';
+  static const _backgroundImage = AppAssets.cover;
 
   bool _isLoading = true;
   Map<String, dynamic> _metrics = {};

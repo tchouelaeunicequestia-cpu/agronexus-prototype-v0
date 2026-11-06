@@ -53,7 +53,7 @@ The platform is currently in the **Full-Featured MVP & Integration Stage**:
 | File | Description |
 | :--- | :--- |
 | 🚀 [DEPLOYMENT_GUIDE.md](file:///c:/Users/lenovo%20p14s/Music/AGRONEXUS/deployment/DEPLOYMENT_GUIDE.md) | **Production Cloud Deployment Guide** (Supabase + Render + Vercel/Firebase & Docker Compose). |
-| ⚡ [supabase_setup.sql](file:///c:/Users/lenovo%20p14s/Music/AGRONEXUS/deployment/supabase_setup.sql) | Production SQL Initialization & Seed Script for Supabase (PostGIS + pgvector). |
+| ⚡ [supabase_setup.sql](file:///c:/Users/lenovo%20p14s/Music/AGRONEXUS/deployment/supabase_setup.sql) | PostgreSQL initialization and seed script for local pgAdmin/PostGIS setup. |
 
 ---
 

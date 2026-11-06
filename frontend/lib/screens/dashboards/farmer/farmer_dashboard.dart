@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 
 import 'package:provider/provider.dart';
+import 'package:frontend/config/app_assets.dart';
 import 'package:frontend/screens/login_screen.dart';
 import 'package:frontend/services/api_service.dart';
 import 'package:frontend/services/auth_provider.dart';
@@ -138,7 +139,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
           // BOTTOM LAYER: Background Image
           Positioned.fill(
             child: Image.asset(
-              'assets/images/abstract_background_1.jpg',
+              AppAssets.cover,
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) =>
                   Container(color: const Color(0xFF0F382C)),
@@ -169,7 +170,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
                         image: const DecorationImage(
-                          image: AssetImage('assets/images/agronexus.jpg'),
+                          image: const AssetImage(AppAssets.logo),
                           fit: BoxFit.cover,
                         ),
                       ),

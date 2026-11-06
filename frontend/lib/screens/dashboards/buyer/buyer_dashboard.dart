@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:frontend/config/app_assets.dart';
 
 import 'package:frontend/services/api_service.dart';
 import 'package:frontend/services/auth_provider.dart';
@@ -842,7 +843,7 @@ class _BuyerDashboardState extends State<BuyerDashboard>
         children: [
           Positioned.fill(
             child: Image.asset(
-              'assets/images/abstract_background_1.jpg',
+              AppAssets.cover,
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) =>
                   Container(color: const Color(0xFF0F382C)),
@@ -883,7 +884,7 @@ class _BuyerDashboardState extends State<BuyerDashboard>
                                   borderRadius: BorderRadius.circular(12),
                                   image: const DecorationImage(
                                     image: AssetImage(
-                                      'assets/images/agronexus.jpg',
+                                      AppAssets.logo,
                                     ),
                                     fit: BoxFit.cover,
                                   ),

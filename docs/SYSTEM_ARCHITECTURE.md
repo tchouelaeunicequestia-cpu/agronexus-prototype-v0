@@ -66,12 +66,14 @@ AgroNexus employs a layered, microservices-ready software architecture designed 
    - **Telemetry Processor**: Real-time sensor threshold parsing (temperature, relative humidity, gas levels) and automated push alert triggers.
 
 4. **AI & Vector Pipeline Layer**:
-   - Integrated using Spring AI connecting to `pgvector`.
-   - Pre-filters incoming user queries using prompt guardrails to reject non-agricultural inputs (99.2% accuracy).
-   - Performs HNSW approximate nearest-neighbor search (`vector_cosine_ops`) over FAO/USDA chunks before prompt synthesis.
+   - **Target architecture:** uses a Hugging Face multilingual embedding model (`intfloat/multilingual-e5-base`) with PostgreSQL full-text search and `pgvector` hybrid retrieval.
+   - The embedding model produces 768-dimensional vectors; the vector index must therefore use `vector(768)`.
+   - Pre-filters incoming user queries using domain guardrails to reject non-agricultural inputs.
+   - Retrieves and ranks official sources, reviewed agronomist guides, research, live data, and clearly labelled farmer observations using provenance, authority, scope, and freshness metadata.
+   - An optional Hugging Face instruction model may synthesize answers only from retrieved passages and must preserve citations. The current MVP still returns matched guide text and does not perform LLM generation or semantic retrieval.
 
 5. **Persistence Layer (PostgreSQL + PostGIS + pgvector)**:
-   - Single ACID-compliant database instance handling relational tables, PostGIS 2D spatial geometries (`GEOMETRY(Point, 4326)`), and high-dimensional vector embeddings (`vector(1536)`).
+   - Single ACID-compliant database instance handling relational tables, PostGIS 2D spatial geometries (`GEOMETRY(Point, 4326)`), PostgreSQL full-text search, and vector embeddings (`vector(768)`).
 
 6. **Cyber-Physical Layer (ESP32 IoT Nodes)**:
    - Microcontroller hardware reading ambient temperature/humidity via DHT22 and air/gas quality via MQ-135 sensor.

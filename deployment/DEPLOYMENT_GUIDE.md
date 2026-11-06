@@ -33,17 +33,15 @@ This guide provides step-by-step instructions for deploying the **AgroNexus** pl
 
 ## 🟢 Option A: Free Cloud Deployment (Recommended for Project Defense)
 
-### Step 1: Database Setup — Supabase (Free Tier)
-1. Sign up at [supabase.com](https://supabase.com) and create a new project named `agronexus-db`.
-2. Navigate to **SQL Editor** in the Supabase Dashboard.
-3. Open [`deployment/supabase_setup.sql`](file:///c:/Users/lenovo%20p14s/Music/AGRONEXUS/deployment/supabase_setup.sql), copy the entire SQL script, paste it into the SQL Editor, and click **Run**.
-4. This script automatically enables `postgis` and `vector` extensions, creates all tables (`users`, `products`, `orders`, `telemetry_logs`, `knowledge_embeddings`), builds GiST & HNSW indexes, and populates seed data.
-5. In Supabase Dashboard $\rightarrow$ **Project Settings** $\rightarrow$ **Database**, copy your Connection Parameters:
-   - `DB_HOST`: `db.xxxxxxxx.supabase.co`
-   - `DB_PORT`: `5432`
-   - `DB_NAME`: `postgres`
+### Step 1: Database Setup — Local PostgreSQL
+1. Open pgAdmin and connect to your local PostgreSQL server on port `5434`.
+2. Use the database named `agronexus`.
+3. Open [`deployment/supabase_setup.sql`](file:///c:/Users/lenovo%20p14s/Music/AGRONEXUS/deployment/supabase_setup.sql) in pgAdmin's Query Tool and execute it.
+4. This script enables the required PostgreSQL extensions, creates the application tables, indexes, and seed data.
+5. Configure the backend with:
+   - `DB_URL`: `jdbc:postgresql://localhost:5434/agronexus`
    - `DB_USER`: `postgres`
-   - `DB_PASSWORD`: `<your-supabase-db-password>`
+   - `DB_PASS`: your local PostgreSQL password
 
 ---
 
@@ -54,9 +52,9 @@ This guide provides step-by-step instructions for deploying the **AgroNexus** pl
 4. Render will automatically detect [`deployment/render.yaml`](file:///c:/Users/lenovo%20p14s/Music/AGRONEXUS/deployment/render.yaml) or [`deployment/Dockerfile.backend`](file:///c:/Users/lenovo%20p14s/Music/AGRONEXUS/deployment/Dockerfile.backend).
 5. Add the following **Environment Variables** in Render:
    - `SPRING_PROFILES_ACTIVE`: `prod`
-   - `SPRING_DATASOURCE_URL`: `jdbc:postgresql://<SUPABASE_HOST>:5432/postgres?sslmode=require`
-   - `SPRING_DATASOURCE_USERNAME`: `postgres`
-   - `SPRING_DATASOURCE_PASSWORD`: `<SUPABASE_PASSWORD>`
+   - `DB_URL`: `jdbc:postgresql://localhost:5434/agronexus`
+   - `DB_USER`: `postgres`
+   - `DB_PASS`: your local PostgreSQL password
    - `JWT_SECRET`: `<generate-strong-256bit-secret-key>`
    - `SPRING_AI_OPENAI_API_KEY`: `<your-openai-api-key>` (for RAG embeddings)
 6. Click **Deploy Web Service**. Render will build the Spring Boot JAR inside the Docker container and assign a HTTPS URL:  

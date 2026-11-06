@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'dart:io';
 
+import '../config/app_assets.dart';
 import '../services/api_service.dart';
 import '../services/platform_services.dart';
 
@@ -784,7 +785,7 @@ class _RegisterScreenState extends State<RegisterScreen>
     return Container(
       decoration: BoxDecoration(
         image: DecorationImage(
-          image: const AssetImage('assets/images/abstract_background_1.jpg'),
+          image: const AssetImage(AppAssets.cover),
           fit: BoxFit.cover,
           colorFilter: ColorFilter.mode(
             Colors.black.withValues(alpha: 0.45),

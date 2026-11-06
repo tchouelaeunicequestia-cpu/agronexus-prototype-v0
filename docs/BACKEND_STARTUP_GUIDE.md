@@ -1,6 +1,6 @@
 # AgroNexus Backend — Startup Guide & Testing Log
 
-**Author**: Eunice Françoise Tchouela Quetsia (Registration No: ICTU20248912)
+**Author**:  Tchouela Eunice  Quetsia (Registration No: ICTU20241869)
 **Date**: September 2026
 **Backend**: Spring Boot 3.3.2 · Java 21 · Maven 3.9.9
 
@@ -222,31 +222,30 @@ properties:
 
 ---
 
-### Error 3 — PSQLException: UnknownHostException (IPv6 Routing Issue)
+### Error 3 — PSQLException: Connection failure
 
 **When**: Third attempt (after fixing Errors 1 & 2).
 
 **Full error:**
 ```
 Caused by: org.postgresql.util.PSQLException: The connection attempt failed.
-Caused by: java.net.UnknownHostException: db.dchoxjkluggsdkwgtmdm.supabase.co
+Caused by: java.net.UnknownHostException: the configured database host
 ```
 
 **Diagnosis:**
 ```powershell
 # DNS resolves correctly to an IPv6 address ✅
-Resolve-DnsName db.dchoxjkluggsdkwgtmdm.supabase.co
+Test-NetConnection localhost -Port 5434
 # → Returns IPv6: 2a05:d018:175d:b600:a27c:8f30:521f:96b3
 ```
 
 **Root cause:**
-Supabase recently changed their free-tier databases to use **IPv6 by default** for direct connections. If your local Internet Service Provider (ISP) does not support IPv6 routing, the Java application cannot reach the server, resulting in an `UnknownHostException` (or `The connection attempt failed`).
+The backend must be able to reach the PostgreSQL server configured in `application.yml`. For the local setup, PostgreSQL is expected at `localhost:5434`.
 
-**Fix applied — Switched to Supabase Session Pooler (IPv4 compatible):**
-We updated the connection string to use the Supabase connection pooler, which provides an IPv4 address.
-1. In Supabase Dashboard, went to **Database Settings** > **Connection string**.
-2. Selected **Session pooler** instead of Direct connection.
-3. Updated the `application.yml` URL and username accordingly.
+**Fix — Configure the local PostgreSQL connection:**
+1. Confirm PostgreSQL is running and listening on port `5434`.
+2. Confirm the `agronexus` database exists.
+3. Set `DB_PASS` to the local PostgreSQL password before starting the backend.
 
 ---
 
@@ -275,9 +274,9 @@ spring:
     name: agronexus-backend
 
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://aws-1-eu-west-1.pooler.supabase.com:5432/postgres?sslmode=require}
-    username: ${SPRING_DATASOURCE_USERNAME:postgres.dchoxjkluggsdkwgtmdm}
-    password: ${SPRING_DATASOURCE_PASSWORD:fzUektKdsTLUbxX8}
+    url: ${DB_URL:jdbc:postgresql://localhost:5434/agronexus}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASS:}
     driver-class-name: org.postgresql.Driver
 
   jpa:

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'dart:ui';
 
+import 'package:frontend/config/app_assets.dart';
 import '../../../services/api_service.dart';
 import '../../../widgets/handover_action_card.dart';
 
@@ -37,7 +38,7 @@ class _HandoverTrackingScreenState extends State<HandoverTrackingScreen> {
         children: [
           Positioned.fill(
             child: Image.asset(
-              'assets/images/abstract_background_1.jpg',
+              AppAssets.cover,
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) =>
                   Container(color: const Color(0xFF0F382C)),

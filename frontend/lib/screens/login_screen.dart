@@ -1,11 +1,14 @@
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:provider/provider.dart';
 
+import '../config/app_assets.dart';
 import '../services/auth_provider.dart';
 import '../services/api_service.dart';
+import '../config/google_sign_in_config.dart';
 import '../theme/app_theme.dart';
 import 'register_screen.dart';
 
@@ -20,6 +23,8 @@ class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   static final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile'],
+    clientId: kIsWeb ? GoogleSignInConfig.clientId : null,
+    serverClientId: GoogleSignInConfig.clientId,
   );
 
   final _formKey = GlobalKey<FormState>();
@@ -243,7 +248,7 @@ class _LoginScreenState extends State<LoginScreen>
         children: [
           Positioned.fill(
             child: Image.asset(
-              'assets/images/abstract_background_1.jpg',
+              AppAssets.cover,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return Container(color: const Color(0xFF0f5132));
@@ -279,9 +284,7 @@ class _LoginScreenState extends State<LoginScreen>
                                         color: Colors.white,
                                         borderRadius: BorderRadius.circular(10),
                                         image: const DecorationImage(
-                                          image: AssetImage(
-                                            'assets/images/agronexus.jpg',
-                                          ),
+                                          image: AssetImage(AppAssets.logo),
                                           fit: BoxFit.cover,
                                         ),
                                       ),

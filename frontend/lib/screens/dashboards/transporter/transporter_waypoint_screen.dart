@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/config/app_assets.dart';
 
 import 'dart:ui';
 
@@ -105,7 +106,7 @@ class _TransporterWaypointScreenState extends State<TransporterWaypointScreen> {
         children: [
           Positioned.fill(
             child: Image.asset(
-              'assets/images/abstract_background_1.jpg',
+              AppAssets.cover,
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) =>
                   Container(color: const Color(0xFF0F382C)),

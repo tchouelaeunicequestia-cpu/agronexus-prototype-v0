@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/config/app_assets.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/services/auth_provider.dart';
 import 'package:frontend/services/api_service.dart';
@@ -769,7 +770,7 @@ class _TransporterLoadsScreenState extends State<TransporterLoadsScreen> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Image.asset(
-                  'assets/images/abstract_background_1.jpg',
+                  AppAssets.cover,
                   width: 64,
                   height: 64,
                   fit: BoxFit.cover,
