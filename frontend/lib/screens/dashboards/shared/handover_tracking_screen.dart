@@ -1,6 +1,9 @@
 // lib/screens/dashboards/shared/handover_tracking_screen.dart
 import 'package:flutter/material.dart';
+
 import 'dart:ui';
+
+import 'package:frontend/config/app_assets.dart';
 import '../../../services/api_service.dart';
 import '../../../widgets/handover_action_card.dart';
 
@@ -34,10 +37,11 @@ class _HandoverTrackingScreenState extends State<HandoverTrackingScreen> {
       body: Stack(
         children: [
           Positioned.fill(
-            child: Image.network(
-              'https://img.freepik.com/premium-photo/agriculture-project-africa_943281-36244.jpg?w=2000',
+            child: Image.asset(
+              AppAssets.cover,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(color: const Color(0xFF0F382C)),
+              errorBuilder: (_, __, ___) =>
+                  Container(color: const Color(0xFF0F382C)),
             ),
           ),
           SafeArea(

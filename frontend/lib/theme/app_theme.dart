@@ -10,7 +10,7 @@ class AppTheme {
   static const Color darkSlate = Color(0xFF1E293B);
   static const Color mutedGrey = Color(0xFF64748B);
   static const Color lightBorder = Color(0xFFE2E8F0);
-  
+
   // Status Colors
   static const Color warningAmber = Color(0xFFD97706);
   static const Color infoBlue = Color(0xFF2563EB);
@@ -50,7 +50,7 @@ class AppTheme {
         error: errorRed,
       ),
       fontFamily: 'Roboto',
-      
+
       // Card Theme
       cardTheme: CardThemeData(
         color: surfaceWhite,
@@ -66,7 +66,10 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 18,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: lightBorder),
@@ -115,10 +118,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
-          textStyle: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
-          ),
+          textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
         ),
       ),
 

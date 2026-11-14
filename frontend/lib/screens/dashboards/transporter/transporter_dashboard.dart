@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'transporter_loads_screen.dart';
 import 'transporter_trip_live_screen.dart';
 import 'transporter_waybill_screen.dart';
@@ -14,7 +15,7 @@ class TransporterDashboard extends StatefulWidget {
 
 class _TransporterDashboardState extends State<TransporterDashboard> {
   int _currentIndex = 0;
-  
+
   final List<Widget> _screens = [
     const TransporterLoadsScreen(),
     const TransporterTripLiveScreen(),
@@ -27,10 +28,7 @@ class _TransporterDashboardState extends State<TransporterDashboard> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0b1326),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: const Color(0xFF060e20).withOpacity(0.9),
@@ -52,8 +50,16 @@ class _TransporterDashboardState extends State<TransporterDashboard> {
             selectedItemColor: const Color(0xFF4edea3),
             unselectedItemColor: const Color(0xFFbbcabf),
             showUnselectedLabels: true,
-            selectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, fontFamily: 'Inter'),
-            unselectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, fontFamily: 'Inter'),
+            selectedLabelStyle: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              fontFamily: 'Inter',
+            ),
+            unselectedLabelStyle: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              fontFamily: 'Inter',
+            ),
             items: const [
               BottomNavigationBarItem(
                 icon: Icon(Icons.local_shipping_outlined),

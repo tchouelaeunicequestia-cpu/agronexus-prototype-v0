@@ -1,12 +1,15 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/services/auth_provider.dart';
+import 'package:frontend/services/api_service.dart';
 
 import 'dart:ui';
 import 'dart:async';
 
 class TransporterHandoverScreen extends StatefulWidget {
-  const TransporterHandoverScreen({super.key});
+  final String? orderCode;
+  const TransporterHandoverScreen({super.key, this.orderCode});
 
   @override
   State<TransporterHandoverScreen> createState() =>
@@ -29,8 +32,18 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
     (_) => TextEditingController(),
   );
   final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
+  bool _isLoading = true;
   bool _isReleasing = false;
   bool _isSettled = false;
+  Map<String, dynamic>? _orderData;
+
+  UserProfile? get _currentUser {
+    try {
+      return context.read<AuthProvider>().currentUser;
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   void initState() {
@@ -38,6 +51,37 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
     _otpControllers[0].text = '8';
     _otpControllers[1].text = '4';
     _otpControllers[2].text = '2';
+    _fetchHandoverData();
+  }
+
+  Future<void> _fetchHandoverData() async {
+    try {
+      String? code = widget.orderCode;
+      if (code == null) {
+        final tripRes = await ApiService.authenticatedRequest('/api/v1/transporter/active-trip');
+        if (tripRes.statusCode == 200) {
+          final tripData = jsonDecode(tripRes.body);
+          if (tripData['hasActiveTrip'] == true && tripData['id'] != null) {
+            code = tripData['id'];
+          }
+        }
+      }
+
+      if (code != null) {
+        final res = await ApiService.authenticatedRequest('/api/v1/transporter/waybill/$code');
+        if (res.statusCode == 200) {
+          final data = jsonDecode(res.body);
+          if (mounted) {
+            setState(() {
+              _orderData = data;
+              _isLoading = false;
+            });
+            return;
+          }
+        }
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
@@ -60,14 +104,49 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
   }
 
   Future<void> _handleReleaseEscrow() async {
+    final code = _orderData?['id'] ?? widget.orderCode;
+    if (code == null) return;
     setState(() => _isReleasing = true);
-    await Future.delayed(const Duration(milliseconds: 1400));
-    if (mounted) {
-      setState(() {
-        _isReleasing = false;
-        _isSettled = true;
-      });
+    try {
+      final res = await ApiService.authenticatedRequest(
+        '/api/v1/transporter/handover/$code/confirm',
+        method: 'POST',
+      );
+      if (res.statusCode == 200) {
+        if (mounted) {
+          setState(() {
+            _isReleasing = false;
+            _isSettled = true;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Escrow funds disbursed successfully!'),
+              backgroundColor: _primary,
+            ),
+          );
+          return;
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Handover clearance response: ${res.statusCode}'),
+              backgroundColor: Colors.orangeAccent,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error releasing escrow: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
     }
+    if (mounted) setState(() => _isReleasing = false);
   }
 
   @override
@@ -77,26 +156,51 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
     return Scaffold(
       backgroundColor: _surface,
       appBar: _buildAppBar(user),
-      body: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Column(
-          children: [
-            _buildTerminalBanner(),
-            const SizedBox(height: 16),
-            _buildStage1(),
-            const SizedBox(height: 16),
-            _buildStage2(),
-            const SizedBox(height: 16),
-            _buildInspectionChecklist(),
-            const SizedBox(height: 16),
-            _buildSettlementPreview(),
-            const SizedBox(height: 16),
-            _buildActionCTA(),
-            const SizedBox(height: 32),
-          ],
-        ),
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: _primary))
+          : _orderData == null
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.inventory_2_outlined, color: _onSurfaceVariant, size: 48),
+                        SizedBox(height: 16),
+                        Text(
+                          'No Active Delivery Handover',
+                          style: TextStyle(color: _onSurface, fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Start or accept a freight trip to access the dual-key delivery handover terminal.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: _onSurfaceVariant, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  child: Column(
+                    children: [
+                      _buildTerminalBanner(),
+                      const SizedBox(height: 16),
+                      _buildStage1(),
+                      const SizedBox(height: 16),
+                      _buildStage2(),
+                      const SizedBox(height: 16),
+                      _buildInspectionChecklist(),
+                      const SizedBox(height: 16),
+                      _buildSettlementPreview(),
+                      const SizedBox(height: 16),
+                      _buildActionCTA(),
+                      const SizedBox(height: 32),
+                    ],
+                  ),
+                ),
     );
   }
 
@@ -249,9 +353,9 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Text(
-                      '#WB-2026-098214',
-                      style: TextStyle(
+                    Text(
+                      '#${_orderData?['id'] ?? widget.orderCode ?? 'WB-LIVE'}',
+                      style: const TextStyle(
                         color: _onSurfaceVariant,
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
@@ -364,29 +468,29 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
                     color: _surfaceContainer,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Column(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'Origin Producer Signature',
                         style: TextStyle(
                           color: _onSurfaceVariant,
                           fontSize: 11,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
-                        'Eunice Françoise',
-                        style: TextStyle(
+                        _orderData?['consignorName'] ?? 'Verified Producer',
+                        style: const TextStyle(
                           color: _onSurface,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      SizedBox(height: 2),
+                      const SizedBox(height: 2),
                       Text(
-                        '07:30 UTC • Gate #04',
-                        style: TextStyle(
+                        _orderData?['consignorLocation'] ?? _orderData?['origin'] ?? 'Farm Gate Dispatch Point',
+                        style: const TextStyle(
                           color: _onSurfaceVariant,
                           fontSize: 11,
                         ),
@@ -536,17 +640,17 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
                       'Destination Terminal',
                       style: TextStyle(color: _onSurfaceVariant, fontSize: 11),
                     ),
-                    const Text(
-                      'Bastos Wholesale Depot',
-                      style: TextStyle(
+                    Text(
+                      _orderData?['consigneeAddress'] ?? _orderData?['destination'] ?? 'Destination Wholesale Depot',
+                      style: const TextStyle(
                         color: _onSurface,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const Text(
-                      'Zone 3C, Yaoundé, Centre Region',
-                      style: TextStyle(color: _onSurfaceVariant, fontSize: 12),
+                    Text(
+                      _orderData?['destination'] ?? 'Destination Terminal Zone',
+                      style: const TextStyle(color: _onSurfaceVariant, fontSize: 12),
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -564,9 +668,9 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
                                   fontSize: 11,
                                 ),
                               ),
-                              const Text(
-                                'Marcelle Nana (Depot Manager)',
-                                style: TextStyle(
+                              Text(
+                                _orderData?['consigneeName'] ?? 'Depot Receiving Manager',
+                                style: const TextStyle(
                                   color: _onSurface,
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
@@ -620,19 +724,19 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text.rich(
+                Text.rich(
                   TextSpan(
-                    text: 'Ask Marcelle Nana for the 4-digit token dispatched to her SMS terminal (',
-                    style: TextStyle(color: _onSurfaceVariant, fontSize: 12),
+                    text: 'Ask ${_orderData?['consigneeName'] ?? 'the receiver'} for the 4-digit token dispatched to their SMS terminal (',
+                    style: const TextStyle(color: _onSurfaceVariant, fontSize: 12),
                     children: [
                       TextSpan(
-                        text: '+237 694•••250',
-                        style: TextStyle(
+                        text: _orderData?['consigneePhone'] ?? '+237 ••• ••• •••',
+                        style: const TextStyle(
                           color: _onSurface,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      TextSpan(text: ')'),
+                      const TextSpan(text: ')'),
                     ],
                   ),
                   textAlign: TextAlign.center,
@@ -766,7 +870,7 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
           const SizedBox(height: 8),
           _buildChecklistItem(
             'Tare deduction & certified weighbridge',
-            '12,480 kg Net Weight acknowledged by depot',
+            '${_orderData?['productQuantity'] ?? 'Net Cargo Weight'} acknowledged by depot',
           ),
         ],
       ),
@@ -871,16 +975,16 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
           const SizedBox(height: 12),
           const Divider(color: Color(0xFF2d3449)),
           const SizedBox(height: 8),
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
+              const Text(
                 'Transporter Freight Fee',
                 style: TextStyle(color: _onSurfaceVariant, fontSize: 12),
               ),
               Text(
-                '185,000 FCFA',
-                style: TextStyle(
+                '${_orderData?['transportFee'] ?? '0'} FCFA',
+                style: const TextStyle(
                   color: _onSurface,
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
@@ -910,10 +1014,10 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Column(
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'Net Instant Payout',
                     style: TextStyle(
                       color: _onSurface,
@@ -922,8 +1026,8 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
                     ),
                   ),
                   Text(
-                    'MTN MoMo (+237 677•••881)',
-                    style: TextStyle(color: _onSurfaceVariant, fontSize: 12),
+                    _currentUser?.phoneNumber ?? _currentUser?.email ?? 'Direct Mobile Wallet',
+                    style: const TextStyle(color: _onSurfaceVariant, fontSize: 12),
                   ),
                 ],
               ),
@@ -932,8 +1036,8 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
                 textBaseline: TextBaseline.alphabetic,
                 children: [
                   Text(
-                    '185,000',
-                    style: TextStyle(
+                    '${_orderData?['transportFee'] ?? '0'}',
+                    style: const TextStyle(
                       color: _primary,
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -979,7 +1083,7 @@ class _TransporterHandoverScreenState extends State<TransporterHandoverScreen> {
               _isReleasing
                   ? 'Clearing Multi-Sig Escrow...'
                   : (_isSettled
-                        ? '185,000 FCFA Disbursed!'
+                        ? '${_orderData?['transportFee'] ?? '0'} FCFA Disbursed!'
                         : 'Verify OTP & Release Escrow'),
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),

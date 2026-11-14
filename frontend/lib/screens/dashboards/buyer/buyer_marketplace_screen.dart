@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/config/app_assets.dart';
 import 'package:frontend/services/api_service.dart';
 import 'package:frontend/services/platform_services.dart';
 
@@ -135,8 +136,8 @@ class _BuyerMarketplaceScreenState extends State<BuyerMarketplaceScreen> {
       body: Stack(
         children: [
           Positioned.fill(
-            child: Image.network(
-              'https://img.freepik.com/premium-photo/agriculture-project-africa_943281-36244.jpg?w=2000',
+            child: Image.asset(
+              AppAssets.cover,
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) =>
                   Container(color: const Color(0xFF0F382C)),

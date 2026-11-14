@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS public.users (
     email VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     role VARCHAR(20) NOT NULL CHECK (role IN ('FARMER', 'BUYER', 'TRANSPORTER', 'AGRONOMIST', 'ADMIN')),
+    google_subject VARCHAR(255) UNIQUE,
     phone_number VARCHAR(20),
     is_verified BOOLEAN DEFAULT TRUE,
     location extensions.geometry(Point, 4326),

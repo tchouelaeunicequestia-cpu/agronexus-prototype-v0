@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import 'screens/login_screen.dart';
 import 'screens/dashboards/farmer/farmer_dashboard.dart';
 import 'screens/dashboards/buyer/buyer_dashboard.dart';
@@ -37,7 +38,7 @@ class AgroNexusApp extends StatelessWidget {
 
           // Strict RBAC Role Guard & Sanitization
           final String role = (auth.role ?? '').toUpperCase().trim();
-          
+
           switch (role) {
             case 'FARMER':
               return const FarmerDashboard();

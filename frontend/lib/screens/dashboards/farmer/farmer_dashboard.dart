@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 
 import 'package:provider/provider.dart';
+import 'package:frontend/config/app_assets.dart';
 import 'package:frontend/screens/login_screen.dart';
 import 'package:frontend/services/api_service.dart';
 import 'package:frontend/services/auth_provider.dart';
@@ -137,8 +138,8 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
         children: [
           // BOTTOM LAYER: Background Image
           Positioned.fill(
-            child: Image.network(
-              'https://img.freepik.com/premium-photo/agriculture-project-africa_943281-36244.jpg?w=2000',
+            child: Image.asset(
+              AppAssets.cover,
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) =>
                   Container(color: const Color(0xFF0F382C)),
@@ -150,7 +151,8 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
             slivers: [
               SliverAppBar(
                 pinned: true,
-                backgroundColor: const Color(0xFF0B1326).withValues(alpha: 0.85),
+                backgroundColor: const Color(0xFF0B1326)
+                    .withValues(alpha: 0.85),
                 elevation: 0,
                 toolbarHeight: 64,
                 flexibleSpace: ClipRRect(
@@ -168,7 +170,7 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
                         image: const DecorationImage(
-                          image: AssetImage('assets/images/agronexus.jpg'),
+                          image: const AssetImage(AppAssets.logo),
                           fit: BoxFit.cover,
                         ),
                       ),
@@ -281,7 +283,9 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                                     color: Colors.black.withValues(alpha: 0.75),
                                     borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
-                                      color: Colors.white.withValues(alpha: 0.2),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.2,
+                                      ),
                                     ),
                                   ),
                                   child: Column(
@@ -354,7 +358,9 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                                           vertical: 10,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: Colors.white.withValues(alpha: 0.1),
+                                          color: Colors.white.withValues(
+                                            alpha: 0.1,
+                                          ),
                                           borderRadius: BorderRadius.circular(
                                             12,
                                           ),
@@ -468,7 +474,9 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                                         vertical: 14,
                                       ),
                                       side: BorderSide(
-                                        color: Colors.white.withValues(alpha: 0.5),
+                                        color: Colors.white.withValues(
+                                          alpha: 0.5,
+                                        ),
                                       ),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(14),
@@ -496,7 +504,9 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                                         vertical: 14,
                                       ),
                                       side: BorderSide(
-                                        color: Colors.white.withValues(alpha: 0.5),
+                                        color: Colors.white.withValues(
+                                          alpha: 0.5,
+                                        ),
                                       ),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(14),
@@ -555,7 +565,9 @@ class _FarmerDashboardState extends State<FarmerDashboard> {
                                     color: Colors.black.withValues(alpha: 0.6),
                                     borderRadius: BorderRadius.circular(16),
                                     border: Border.all(
-                                      color: Colors.white.withValues(alpha: 0.2),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.2,
+                                      ),
                                     ),
                                   ),
                                   child: Column(

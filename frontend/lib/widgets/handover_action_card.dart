@@ -43,10 +43,15 @@ class HandoverActionCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Active Handover Order: $orderId',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            Text(
+              'Active Handover Order: $orderId',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
             const SizedBox(height: 8),
-            Text('Current Stage Role: $role', style: TextStyle(color: Colors.grey[700])),
+            Text(
+              'Current Stage Role: $role',
+              style: TextStyle(color: Colors.grey[700]),
+            ),
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
@@ -56,27 +61,45 @@ class HandoverActionCard extends StatelessWidget {
                   bool success = false;
 
                   if (role.toUpperCase() == 'FARMER') {
-                    success = await ApiService.farmerSignoffDispatch(orderId, authToken);
+                    success = await ApiService.farmerSignoffDispatch(
+                      orderId,
+                      authToken,
+                    );
                   } else if (role.toUpperCase() == 'TRANSPORTER') {
-                    success = await ApiService.transporterConfirmDelivery(orderId, authToken);
+                    success = await ApiService.transporterConfirmDelivery(
+                      orderId,
+                      authToken,
+                    );
                   } else if (role.toUpperCase() == 'BUYER') {
-                    success = await ApiService.buyerReleaseEscrow(orderId, authToken);
+                    success = await ApiService.buyerReleaseEscrow(
+                      orderId,
+                      authToken,
+                    );
                   }
 
                   if (context.mounted) {
                     if (success) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Handover signoff successful!')),
+                        const SnackBar(
+                          content: Text('Handover signoff successful!'),
+                        ),
                       );
                       onSuccess();
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Signoff failed. Please check network/auth.')),
+                        const SnackBar(
+                          content: Text(
+                            'Signoff failed. Please check network/auth.',
+                          ),
+                        ),
                       );
                     }
                   }
                 },
-                child: Text(buttonText, style: const TextStyle(color: Colors.white)),
+                child: Text(
+                  buttonText,
+                  style: const TextStyle(color: Colors.white),
+                ),
               ),
             ),
           ],

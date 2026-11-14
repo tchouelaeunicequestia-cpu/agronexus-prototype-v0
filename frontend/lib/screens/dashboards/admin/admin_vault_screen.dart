@@ -1,6 +1,8 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:frontend/services/api_service.dart';
+
 import 'widgets/admin_app_bar.dart';
 
 class AdminVaultScreen extends StatefulWidget {
@@ -18,38 +20,7 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
   double _mtnBalance = 28400000;
   double _orangeBalance = 20250000;
 
-  final List<Map<String, dynamic>> _settlementLogs = [
-    {
-      'order': '#ORD-98210',
-      'type': 'Farmer Settlement',
-      'speed': '0.8s Cleared',
-      'beneficiary': 'Eunice F. (MTN MoMo)',
-      'amount': '1,572,500 FCFA',
-      'subtext': 'Phytosanitary multi-sig verified',
-      'time': 'Just now',
-      'isFast': true,
-    },
-    {
-      'order': '#ORD-98208',
-      'type': 'Freight Release',
-      'speed': 'Cleared',
-      'beneficiary': 'Transporter Jean-Paul M.',
-      'amount': '185,000 FCFA',
-      'subtext': 'Weighbridge batch clearance match',
-      'time': '4m ago',
-      'isFast': false,
-    },
-    {
-      'order': '#ORD-98205',
-      'type': 'Farmer Settlement',
-      'speed': 'Cleared',
-      'beneficiary': 'Farmer Jean-Baptiste',
-      'amount': '360,000 FCFA',
-      'subtext': 'Cold storage IoT seal unlatched',
-      'time': '12m ago',
-      'isFast': false,
-    },
-  ];
+  List<Map<String, dynamic>> _settlementLogs = [];
 
   @override
   void initState() {
@@ -60,7 +31,9 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
   Future<void> _fetchLiveMetrics() async {
     setState(() => _isLoading = true);
     try {
-      final res = await ApiService.authenticatedRequest('/api/v1/admin/metrics');
+      final res = await ApiService.authenticatedRequest(
+        '/api/v1/admin/metrics',
+      );
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         if (data is Map<String, dynamic> && data['escrowVolume'] != null) {
@@ -70,6 +43,18 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
               _totalLocked = vol;
             });
           }
+        }
+      }
+
+      final logsRes = await ApiService.authenticatedRequest(
+        '/api/v1/admin/vault/logs',
+      );
+      if (logsRes.statusCode == 200) {
+        final logsData = jsonDecode(logsRes.body);
+        if (logsData is List) {
+          setState(() {
+            _settlementLogs = List<Map<String, dynamic>>.from(logsData);
+          });
         }
       }
     } catch (_) {
@@ -90,8 +75,14 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
     return buffer.toString();
   }
 
-  void _showAdjustDialog(String gateway, double currentBalance, Function(double) onSave) {
-    final controller = TextEditingController(text: currentBalance.toInt().toString());
+  void _showAdjustDialog(
+    String gateway,
+    double currentBalance,
+    Function(double) onSave,
+  ) {
+    final controller = TextEditingController(
+      text: currentBalance.toInt().toString(),
+    );
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -99,7 +90,11 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Adjust $gateway Buffer',
-          style: const TextStyle(color: Color(0xFFDAE2FD), fontSize: 18, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            color: Color(0xFFDAE2FD),
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -113,7 +108,10 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
             TextField(
               controller: controller,
               keyboardType: TextInputType.number,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
               decoration: InputDecoration(
                 labelText: 'Reserve (FCFA)',
                 labelStyle: const TextStyle(color: Color(0xFF86948A)),
@@ -136,21 +134,29 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFFBBCABF))),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Color(0xFFBBCABF)),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF4EDEA3),
               foregroundColor: const Color(0xFF003824),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             onPressed: () {
-              final newAmount = double.tryParse(controller.text) ?? currentBalance;
+              final newAmount =
+                  double.tryParse(controller.text) ?? currentBalance;
               onSave(newAmount);
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('$gateway floating reserve adjusted to ${_formatCurrency(newAmount)} FCFA'),
+                  content: Text(
+                    '$gateway floating reserve adjusted to ${_formatCurrency(newAmount)} FCFA',
+                  ),
                   backgroundColor: const Color(0xFF10B981),
                 ),
               );
@@ -190,7 +196,9 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
           children: [
             Icon(Icons.sync, color: Color(0xFF4EDEA3)),
             SizedBox(width: 8),
-            Text('Auto-sweep executed: Reconciled 142 contracts with BEAC buffer.'),
+            Text(
+              'Auto-sweep executed: Reconciled 142 contracts with BEAC buffer.',
+            ),
           ],
         ),
         backgroundColor: Color(0xFF131B2E),
@@ -209,27 +217,52 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
           children: [
             Icon(Icons.key, color: Color(0xFF4EDEA3)),
             SizedBox(width: 8),
-            Text('Multi-Sig Audit Telemetry', style: TextStyle(color: Color(0xFFDAE2FD), fontSize: 16)),
+            Text(
+              'Multi-Sig Audit Telemetry',
+              style: TextStyle(color: Color(0xFFDAE2FD), fontSize: 16),
+            ),
           ],
         ),
         content: const Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Threshold Requirement: 3 of 4 Keys', style: TextStyle(color: Color(0xFFBBCABF), fontSize: 13, fontWeight: FontWeight.bold)),
+            Text(
+              'Threshold Requirement: 3 of 4 Keys',
+              style: TextStyle(
+                color: Color(0xFFBBCABF),
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             SizedBox(height: 12),
-            Text('• Key #1 (Yaoundé Hub HSM): ACTIVE ✅', style: TextStyle(color: Color(0xFF4EDEA3), fontSize: 12)),
+            Text(
+              '• Key #1 (Yaoundé Hub HSM): ACTIVE ✅',
+              style: TextStyle(color: Color(0xFF4EDEA3), fontSize: 12),
+            ),
             SizedBox(height: 4),
-            Text('• Key #2 (Bafia Logistics Root): ACTIVE ✅', style: TextStyle(color: Color(0xFF4EDEA3), fontSize: 12)),
+            Text(
+              '• Key #2 (Bafia Logistics Root): ACTIVE ✅',
+              style: TextStyle(color: Color(0xFF4EDEA3), fontSize: 12),
+            ),
             SizedBox(height: 4),
-            Text('• Key #3 (BEAC Regulatory Node): ACTIVE ✅', style: TextStyle(color: Color(0xFF4EDEA3), fontSize: 12)),
+            Text(
+              '• Key #3 (BEAC Regulatory Node): ACTIVE ✅',
+              style: TextStyle(color: Color(0xFF4EDEA3), fontSize: 12),
+            ),
             SizedBox(height: 4),
-            Text('• Key #4 (Disaster Recovery Cold): STANDBY ⏸', style: TextStyle(color: Color(0xFFFFB95F), fontSize: 12)),
+            Text(
+              '• Key #4 (Disaster Recovery Cold): STANDBY ⏸',
+              style: TextStyle(color: Color(0xFFFFB95F), fontSize: 12),
+            ),
           ],
         ),
         actions: [
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4EDEA3), foregroundColor: const Color(0xFF003824)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4EDEA3),
+              foregroundColor: const Color(0xFF003824),
+            ),
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Close'),
           ),
@@ -245,7 +278,9 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
           children: [
             Icon(Icons.download_done, color: Color(0xFF4EDEA3)),
             SizedBox(width: 8),
-            Text('Signed cryptographic ledger (CSV/PDF) generated and downloaded.'),
+            Text(
+              'Signed cryptographic ledger (CSV/PDF) generated and downloaded.',
+            ),
           ],
         ),
         backgroundColor: Color(0xFF131B2E),
@@ -323,14 +358,20 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                           ],
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFF222A3D),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Text(
                             'L3 Cold Multi-Sig',
-                            style: TextStyle(color: Color(0xFFBBCABF), fontSize: 11),
+                            style: TextStyle(
+                              color: Color(0xFFBBCABF),
+                              fontSize: 11,
+                            ),
                           ),
                         ),
                       ],
@@ -338,7 +379,11 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                     const SizedBox(height: 12),
                     const Text(
                       'TOTAL LOCKED COLLATERAL',
-                      style: TextStyle(color: Color(0xFFBBCABF), fontSize: 11, letterSpacing: 1),
+                      style: TextStyle(
+                        color: Color(0xFFBBCABF),
+                        fontSize: 11,
+                        letterSpacing: 1,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Row(
@@ -368,11 +413,18 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                     const SizedBox(height: 4),
                     const Row(
                       children: [
-                        Icon(Icons.verified, color: Color(0xFF4EDEA3), size: 14),
+                        Icon(
+                          Icons.verified,
+                          color: Color(0xFF4EDEA3),
+                          size: 14,
+                        ),
                         SizedBox(width: 4),
                         Text(
                           'Across 142 active agricultural contracts',
-                          style: TextStyle(color: Color(0xFFBBCABF), fontSize: 12),
+                          style: TextStyle(
+                            color: Color(0xFFBBCABF),
+                            fontSize: 12,
+                          ),
                         ),
                       ],
                     ),
@@ -392,7 +444,10 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                               children: [
                                 const Text(
                                   '24h Auto-Disbursements',
-                                  style: TextStyle(color: Color(0xFFBBCABF), fontSize: 11),
+                                  style: TextStyle(
+                                    color: Color(0xFFBBCABF),
+                                    fontSize: 11,
+                                  ),
                                 ),
                                 const SizedBox(height: 4),
                                 const Text(
@@ -406,15 +461,29 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                                 const SizedBox(height: 4),
                                 const Row(
                                   children: [
-                                    Icon(Icons.bolt, color: Color(0xFF4EDEA3), size: 12),
+                                    Icon(
+                                      Icons.bolt,
+                                      color: Color(0xFF4EDEA3),
+                                      size: 12,
+                                    ),
                                     SizedBox(width: 2),
-                                    Text('100% On-Time', style: TextStyle(color: Color(0xFF4EDEA3), fontSize: 11)),
+                                    Text(
+                                      '100% On-Time',
+                                      style: TextStyle(
+                                        color: Color(0xFF4EDEA3),
+                                        fontSize: 11,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ],
                             ),
                           ),
-                          Container(width: 1, height: 40, color: const Color(0xFF222A3D)),
+                          Container(
+                            width: 1,
+                            height: 40,
+                            color: const Color(0xFF222A3D),
+                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
@@ -422,7 +491,10 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                               children: [
                                 const Text(
                                   'Cashout Buffer Reserve',
-                                  style: TextStyle(color: Color(0xFFBBCABF), fontSize: 11),
+                                  style: TextStyle(
+                                    color: Color(0xFFBBCABF),
+                                    fontSize: 11,
+                                  ),
                                 ),
                                 const SizedBox(height: 4),
                                 const Text(
@@ -436,9 +508,19 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                                 const SizedBox(height: 4),
                                 const Row(
                                   children: [
-                                    Icon(Icons.shield_outlined, color: Color(0xFFFFB95F), size: 12),
+                                    Icon(
+                                      Icons.shield_outlined,
+                                      color: Color(0xFFFFB95F),
+                                      size: 12,
+                                    ),
                                     SizedBox(width: 2),
-                                    Text('1.5% Fee Absorption', style: TextStyle(color: Color(0xFFFFB95F), fontSize: 11)),
+                                    Text(
+                                      '1.5% Fee Absorption',
+                                      style: TextStyle(
+                                        color: Color(0xFFFFB95F),
+                                        fontSize: 11,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ],
@@ -494,7 +576,10 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                             const SizedBox(width: 4),
                             const Text(
                               'Zero-Loss Backed',
-                              style: TextStyle(color: Color(0xFF4EDEA3), fontSize: 11),
+                              style: TextStyle(
+                                color: Color(0xFF4EDEA3),
+                                fontSize: 11,
+                              ),
                             ),
                           ],
                         ),
@@ -508,11 +593,17 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                         children: [
                           Expanded(
                             flex: (_farmerRatio * 100).toInt(),
-                            child: Container(height: 12, color: const Color(0xFF4EDEA3)),
+                            child: Container(
+                              height: 12,
+                              color: const Color(0xFF4EDEA3),
+                            ),
                           ),
                           Expanded(
                             flex: (_freightRatio * 100).toInt(),
-                            child: Container(height: 12, color: const Color(0xFFFFB95F)),
+                            child: Container(
+                              height: 12,
+                              color: const Color(0xFFFFB95F),
+                            ),
                           ),
                         ],
                       ),
@@ -537,7 +628,10 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                                   const SizedBox(width: 6),
                                   const Text(
                                     'Farmer Reserved (85%)',
-                                    style: TextStyle(color: Color(0xFFDAE2FD), fontSize: 11),
+                                    style: TextStyle(
+                                      color: Color(0xFFDAE2FD),
+                                      fontSize: 11,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -573,7 +667,10 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                                   const SizedBox(width: 6),
                                   const Text(
                                     'Freight Logistics (15%)',
-                                    style: TextStyle(color: Color(0xFFDAE2FD), fontSize: 11),
+                                    style: TextStyle(
+                                      color: Color(0xFFDAE2FD),
+                                      fontSize: 11,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -615,11 +712,18 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                   ),
                   Row(
                     children: [
-                      const Icon(Icons.sync, color: Color(0xFF4EDEA3), size: 14),
+                      const Icon(
+                        Icons.sync,
+                        color: Color(0xFF4EDEA3),
+                        size: 14,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         '2 Nodes Hot',
-                        style: TextStyle(color: const Color(0xFFBBCABF).withValues(alpha: 0.9), fontSize: 11),
+                        style: TextStyle(
+                          color: const Color(0xFFBBCABF).withValues(alpha: 0.9),
+                          fontSize: 11,
+                        ),
                       ),
                     ],
                   ),
@@ -665,27 +769,48 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                               children: [
                                 Text(
                                   'MTN Mobile Money Core',
-                                  style: TextStyle(color: Color(0xFFDAE2FD), fontSize: 13, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                    color: Color(0xFFDAE2FD),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                                 Text(
                                   '+237 651 305 141',
-                                  style: TextStyle(color: Color(0xFFBBCABF), fontSize: 12, fontFamily: 'monospace'),
+                                  style: TextStyle(
+                                    color: Color(0xFFBBCABF),
+                                    fontSize: 12,
+                                    fontFamily: 'monospace',
+                                  ),
                                 ),
                               ],
                             ),
                           ],
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFF222A3D),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Row(
                             children: [
-                              Icon(Icons.bolt, color: Color(0xFF4EDEA3), size: 12),
+                              Icon(
+                                Icons.bolt,
+                                color: Color(0xFF4EDEA3),
+                                size: 12,
+                              ),
                               SizedBox(width: 2),
-                              Text('18ms', style: TextStyle(color: Color(0xFF4EDEA3), fontSize: 11)),
+                              Text(
+                                '18ms',
+                                style: TextStyle(
+                                  color: Color(0xFF4EDEA3),
+                                  fontSize: 11,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -700,7 +825,10 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                           children: [
                             const Text(
                               'Escrow Floating Balance',
-                              style: TextStyle(color: Color(0xFFBBCABF), fontSize: 11),
+                              style: TextStyle(
+                                color: Color(0xFFBBCABF),
+                                fontSize: 11,
+                              ),
                             ),
                             const SizedBox(height: 2),
                             Text(
@@ -717,16 +845,30 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF222A3D),
                             foregroundColor: const Color(0xFFDAE2FD),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
                           ),
                           onPressed: () {
-                            _showAdjustDialog('MTN MoMo', _mtnBalance, (newVal) {
+                            _showAdjustDialog('MTN MoMo', _mtnBalance, (
+                              newVal,
+                            ) {
                               setState(() => _mtnBalance = newVal);
                             });
                           },
-                          icon: const Icon(Icons.tune, color: Color(0xFFFFB95F), size: 16),
-                          label: const Text('Adjust', style: TextStyle(fontSize: 12)),
+                          icon: const Icon(
+                            Icons.tune,
+                            color: Color(0xFFFFB95F),
+                            size: 16,
+                          ),
+                          label: const Text(
+                            'Adjust',
+                            style: TextStyle(fontSize: 12),
+                          ),
                         ),
                       ],
                     ),
@@ -774,27 +916,48 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                               children: [
                                 Text(
                                   'Orange Money Central',
-                                  style: TextStyle(color: Color(0xFFDAE2FD), fontSize: 13, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                    color: Color(0xFFDAE2FD),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                                 Text(
                                   '+237 694 002 750',
-                                  style: TextStyle(color: Color(0xFFBBCABF), fontSize: 12, fontFamily: 'monospace'),
+                                  style: TextStyle(
+                                    color: Color(0xFFBBCABF),
+                                    fontSize: 12,
+                                    fontFamily: 'monospace',
+                                  ),
                                 ),
                               ],
                             ),
                           ],
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFF222A3D),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Row(
                             children: [
-                              Icon(Icons.bolt, color: Color(0xFF4EDEA3), size: 12),
+                              Icon(
+                                Icons.bolt,
+                                color: Color(0xFF4EDEA3),
+                                size: 12,
+                              ),
                               SizedBox(width: 2),
-                              Text('22ms', style: TextStyle(color: Color(0xFF4EDEA3), fontSize: 11)),
+                              Text(
+                                '22ms',
+                                style: TextStyle(
+                                  color: Color(0xFF4EDEA3),
+                                  fontSize: 11,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -809,7 +972,10 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                           children: [
                             const Text(
                               'Escrow Floating Balance',
-                              style: TextStyle(color: Color(0xFFBBCABF), fontSize: 11),
+                              style: TextStyle(
+                                color: Color(0xFFBBCABF),
+                                fontSize: 11,
+                              ),
                             ),
                             const SizedBox(height: 2),
                             Text(
@@ -826,16 +992,30 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF222A3D),
                             foregroundColor: const Color(0xFFDAE2FD),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
                           ),
                           onPressed: () {
-                            _showAdjustDialog('Orange Money', _orangeBalance, (newVal) {
+                            _showAdjustDialog('Orange Money', _orangeBalance, (
+                              newVal,
+                            ) {
                               setState(() => _orangeBalance = newVal);
                             });
                           },
-                          icon: const Icon(Icons.tune, color: Color(0xFF4EDEA3), size: 16),
-                          label: const Text('Adjust', style: TextStyle(fontSize: 12)),
+                          icon: const Icon(
+                            Icons.tune,
+                            color: Color(0xFF4EDEA3),
+                            size: 16,
+                          ),
+                          label: const Text(
+                            'Adjust',
+                            style: TextStyle(fontSize: 12),
+                          ),
                         ),
                       ],
                     ),
@@ -855,11 +1035,23 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                         foregroundColor: const Color(0xFFDAE2FD),
                         side: const BorderSide(color: Color(0xFF2D3449)),
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       onPressed: _triggerRebalance,
-                      icon: const Icon(Icons.swap_horiz, color: Color(0xFFFFB95F), size: 18),
-                      label: const Text('Rebalance Buffers', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      icon: const Icon(
+                        Icons.swap_horiz,
+                        color: Color(0xFFFFB95F),
+                        size: 18,
+                      ),
+                      label: const Text(
+                        'Rebalance Buffers',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -870,11 +1062,23 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                         foregroundColor: const Color(0xFFDAE2FD),
                         side: const BorderSide(color: Color(0xFF2D3449)),
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       onPressed: _triggerAutoSweep,
-                      icon: const Icon(Icons.autorenew, color: Color(0xFF4EDEA3), size: 18),
-                      label: const Text('Force Auto-Sweep', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      icon: const Icon(
+                        Icons.autorenew,
+                        color: Color(0xFF4EDEA3),
+                        size: 18,
+                      ),
+                      label: const Text(
+                        'Force Auto-Sweep',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -908,7 +1112,10 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                       const SizedBox(width: 4),
                       const Text(
                         'Realtime',
-                        style: TextStyle(color: Color(0xFF4EDEA3), fontSize: 11),
+                        style: TextStyle(
+                          color: Color(0xFF4EDEA3),
+                          fontSize: 11,
+                        ),
                       ),
                     ],
                   ),
@@ -924,7 +1131,9 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                 ),
                 child: Column(
                   children: _settlementLogs.map((item) {
-                    final isOrange = item['beneficiary'].toString().contains('Jean-Paul');
+                    final isOrange = item['beneficiary'].toString().contains(
+                      'Jean-Paul',
+                    );
                     return Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       padding: const EdgeInsets.all(12),
@@ -943,7 +1152,9 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                                   Text(
                                     item['order'],
                                     style: TextStyle(
-                                      color: isOrange ? const Color(0xFFFFB95F) : const Color(0xFF4EDEA3),
+                                      color: isOrange
+                                          ? const Color(0xFFFFB95F)
+                                          : const Color(0xFF4EDEA3),
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,
                                       fontFamily: 'monospace',
@@ -951,14 +1162,20 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                                   ),
                                   const SizedBox(width: 8),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFF222A3D),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
                                       item['type'],
-                                      style: const TextStyle(color: Color(0xFFBBCABF), fontSize: 10),
+                                      style: const TextStyle(
+                                        color: Color(0xFFBBCABF),
+                                        fontSize: 10,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -966,13 +1183,24 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                               Row(
                                 children: [
                                   if (item['isFast'])
-                                    const Icon(Icons.bolt, color: Color(0xFF4EDEA3), size: 14)
+                                    const Icon(
+                                      Icons.bolt,
+                                      color: Color(0xFF4EDEA3),
+                                      size: 14,
+                                    )
                                   else
-                                    const Icon(Icons.check_circle, color: Color(0xFF4EDEA3), size: 14),
+                                    const Icon(
+                                      Icons.check_circle,
+                                      color: Color(0xFF4EDEA3),
+                                      size: 14,
+                                    ),
                                   const SizedBox(width: 2),
                                   Text(
                                     item['speed'],
-                                    style: const TextStyle(color: Color(0xFF4EDEA3), fontSize: 11),
+                                    style: const TextStyle(
+                                      color: Color(0xFF4EDEA3),
+                                      fontSize: 11,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -984,7 +1212,10 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                             children: [
                               Text(
                                 item['beneficiary'],
-                                style: const TextStyle(color: Color(0xFFDAE2FD), fontSize: 13),
+                                style: const TextStyle(
+                                  color: Color(0xFFDAE2FD),
+                                  fontSize: 13,
+                                ),
                               ),
                               Text(
                                 item['amount'],
@@ -1002,11 +1233,17 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                             children: [
                               Text(
                                 item['subtext'],
-                                style: const TextStyle(color: Color(0xFF86948A), fontSize: 11),
+                                style: const TextStyle(
+                                  color: Color(0xFF86948A),
+                                  fontSize: 11,
+                                ),
                               ),
                               Text(
                                 item['time'],
-                                style: const TextStyle(color: Color(0xFF86948A), fontSize: 11),
+                                style: const TextStyle(
+                                  color: Color(0xFF86948A),
+                                  fontSize: 11,
+                                ),
                               ),
                             ],
                           ),
@@ -1031,7 +1268,11 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                   children: [
                     const Row(
                       children: [
-                        Icon(Icons.admin_panel_settings, color: Color(0xFFFFB95F), size: 20),
+                        Icon(
+                          Icons.admin_panel_settings,
+                          color: Color(0xFFFFB95F),
+                          size: 20,
+                        ),
                         SizedBox(width: 8),
                         Text(
                           'TREASURY GOVERNANCE',
@@ -1046,22 +1287,64 @@ class _AdminVaultScreenState extends State<AdminVaultScreen> {
                     ),
                     const SizedBox(height: 12),
                     ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       tileColor: const Color(0xFF171F33),
-                      leading: const Icon(Icons.key, color: Color(0xFF4EDEA3), size: 20),
-                      title: const Text('Audit Multi-Sig Treasury Keys', style: TextStyle(color: Color(0xFFDAE2FD), fontSize: 13)),
-                      trailing: const Text('3/4 Valid', style: TextStyle(color: Color(0xFFBBCABF), fontSize: 12)),
+                      leading: const Icon(
+                        Icons.key,
+                        color: Color(0xFF4EDEA3),
+                        size: 20,
+                      ),
+                      title: const Text(
+                        'Audit Multi-Sig Treasury Keys',
+                        style: TextStyle(
+                          color: Color(0xFFDAE2FD),
+                          fontSize: 13,
+                        ),
+                      ),
+                      trailing: const Text(
+                        '3/4 Valid',
+                        style: TextStyle(
+                          color: Color(0xFFBBCABF),
+                          fontSize: 12,
+                        ),
+                      ),
                       onTap: _showAuditKeysDialog,
                     ),
                     const SizedBox(height: 8),
                     ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       tileColor: const Color(0xFF171F33),
-                      leading: const Icon(Icons.download, color: Color(0xFFFFB95F), size: 20),
-                      title: const Text('Export Central Ledger Report', style: TextStyle(color: Color(0xFFDAE2FD), fontSize: 13)),
-                      trailing: const Text('CSV/PDF', style: TextStyle(color: Color(0xFFBBCABF), fontSize: 12)),
+                      leading: const Icon(
+                        Icons.download,
+                        color: Color(0xFFFFB95F),
+                        size: 20,
+                      ),
+                      title: const Text(
+                        'Export Central Ledger Report',
+                        style: TextStyle(
+                          color: Color(0xFFDAE2FD),
+                          fontSize: 13,
+                        ),
+                      ),
+                      trailing: const Text(
+                        'CSV/PDF',
+                        style: TextStyle(
+                          color: Color(0xFFBBCABF),
+                          fontSize: 12,
+                        ),
+                      ),
                       onTap: _exportLedger,
                     ),
                   ],

@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     role VARCHAR(20) NOT NULL CHECK (role IN ('FARMER', 'BUYER', 'TRANSPORTER', 'AGRONOMIST', 'ADMIN')),
+    google_subject VARCHAR(255) UNIQUE,
     phone_number VARCHAR(20),
     is_verified BOOLEAN DEFAULT FALSE,
     location GEOMETRY(Point, 4326),
@@ -94,15 +95,25 @@ CREATE TABLE IF NOT EXISTS telemetry_logs (
 CREATE INDEX IF NOT EXISTS idx_telemetry_node_recorded ON telemetry_logs(node_id, recorded_at DESC);
 
 -- ------------------------------------------------------------------------------
--- 5. KNOWLEDGE EMBEDDINGS TABLE (FAO / USDA RAG Vectors)
+-- 5. KNOWLEDGE EMBEDDINGS TABLE (Multi-source RAG Vectors)
 -- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS knowledge_embeddings (
     id BIGSERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
-    source_agency VARCHAR(50) NOT NULL, -- e.g., 'FAO', 'USDA', 'UNECE'
+    source_agency VARCHAR(100) NOT NULL, -- e.g., 'FAO', 'USDA', 'UNECE', or a reviewed agronomist
     category VARCHAR(50) NOT NULL,      -- e.g., 'CROP_STORAGE', 'DISEASE_CONTROL', 'QUALITY_STANDARD'
     content_chunk TEXT NOT NULL,
-    embedding vector(1536) NOT NULL,     -- OpenAI / Spring AI 1536-dim embedding
+    embedding vector(768) NOT NULL,     -- intfloat/multilingual-e5-base
+    embedding_model VARCHAR(100) NOT NULL DEFAULT 'intfloat/multilingual-e5-base',
+    source_type VARCHAR(30) NOT NULL DEFAULT 'AGRONOMIST_GUIDE',
+    source_url TEXT,
+    language VARCHAR(10) NOT NULL DEFAULT 'en',
+    country VARCHAR(100),
+    region VARCHAR(100),
+    crop_name VARCHAR(100),
+    publication_date DATE,
+    review_status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    authority_level VARCHAR(30) NOT NULL DEFAULT 'EXPERT_REVIEWED',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 

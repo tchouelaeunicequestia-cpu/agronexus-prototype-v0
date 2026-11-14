@@ -3,7 +3,8 @@ import 'dart:convert';
 
 // Conditionally import localStorage backend only on web
 import 'draft_service_stub.dart'
-    if (dart.library.html) 'draft_service_web.dart' as draft_impl; // ignore: library_prefixes
+    if (dart.library.html) 'draft_service_web.dart'
+    as draft_impl; // ignore: library_prefixes
 
 /// A simple cross-platform draft service.
 /// On web, persists drafts in localStorage. On native, no-ops (stub).

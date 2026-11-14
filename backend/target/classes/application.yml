@@ -3,17 +3,18 @@ spring:
     name: agronexus-backend
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://aws-1-eu-west-1.pooler.supabase.com:5432/postgres}
-    username: ${DB_USER:postgres.dchoxjkluggsdkwgtmdm}
-    password: ${DB_PASS:fzUektKdsTLUbxX8}
+    url: ${DB_URL:jdbc:postgresql://localhost:5434/agronexus}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASS:}
     driver-class-name: org.postgresql.Driver
     hikari:
-    max-lifetime: 300000
+      max-lifetime: 300000
 
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
 
   mail:
     host: smtp.gmail.com
@@ -36,3 +37,5 @@ agronexus:
   jwt:
     secret: ${JWT_SECRET:9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b}
     expiration-ms: 86400000 # 24 Hours in milliseconds
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:738887774753-htlsc9nqbt1gu8rh45mna2nr8hsalquj.apps.googleusercontent.com}

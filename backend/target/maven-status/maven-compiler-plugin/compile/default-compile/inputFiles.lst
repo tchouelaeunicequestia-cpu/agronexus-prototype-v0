@@ -2,6 +2,7 @@ C:\Users\lenovo p14s\Music\AGRONEXUS\backend\src\main\java\com\agronexus\api\Agr
 C:\Users\lenovo p14s\Music\AGRONEXUS\backend\src\main\java\com\agronexus\api\config\OpenApiConfig.java
 C:\Users\lenovo p14s\Music\AGRONEXUS\backend\src\main\java\com\agronexus\api\controller\AdminController.java
 C:\Users\lenovo p14s\Music\AGRONEXUS\backend\src\main\java\com\agronexus\api\controller\AdminEscrowController.java
+C:\Users\lenovo p14s\Music\AGRONEXUS\backend\src\main\java\com\agronexus\api\controller\AgronomistController.java
 C:\Users\lenovo p14s\Music\AGRONEXUS\backend\src\main\java\com\agronexus\api\controller\AiAssistantController.java
 C:\Users\lenovo p14s\Music\AGRONEXUS\backend\src\main\java\com\agronexus\api\controller\AuthController.java
 C:\Users\lenovo p14s\Music\AGRONEXUS\backend\src\main\java\com\agronexus\api\controller\EscrowController.java
@@ -11,6 +12,7 @@ C:\Users\lenovo p14s\Music\AGRONEXUS\backend\src\main\java\com\agronexus\api\con
 C:\Users\lenovo p14s\Music\AGRONEXUS\backend\src\main\java\com\agronexus\api\controller\ProductFavoriteController.java
 C:\Users\lenovo p14s\Music\AGRONEXUS\backend\src\main\java\com\agronexus\api\controller\TelemetryController.java
 C:\Users\lenovo p14s\Music\AGRONEXUS\backend\src\main\java\com\agronexus\api\controller\TransporterController.java
+C:\Users\lenovo p14s\Music\AGRONEXUS\backend\src\main\java\com\agronexus\api\entity\ActuatorCommand.java
 C:\Users\lenovo p14s\Music\AGRONEXUS\backend\src\main\java\com\agronexus\api\entity\EscrowStatus.java
 C:\Users\lenovo p14s\Music\AGRONEXUS\backend\src\main\java\com\agronexus\api\entity\KnowledgeEmbedding.java
 C:\Users\lenovo p14s\Music\AGRONEXUS\backend\src\main\java\com\agronexus\api\entity\Order.java
@@ -22,7 +24,9 @@ C:\Users\lenovo p14s\Music\AGRONEXUS\backend\src\main\java\com\agronexus\api\ent
 C:\Users\lenovo p14s\Music\AGRONEXUS\backend\src\main\java\com\agronexus\api\entity\User.java
 C:\Users\lenovo p14s\Music\AGRONEXUS\backend\src\main\java\com\agronexus\api\entity\VerificationChallenge.java
 C:\Users\lenovo p14s\Music\AGRONEXUS\backend\src\main\java\com\agronexus\api\model\EscrowTransaction.java
+C:\Users\lenovo p14s\Music\AGRONEXUS\backend\src\main\java\com\agronexus\api\repository\ActuatorCommandRepository.java
 C:\Users\lenovo p14s\Music\AGRONEXUS\backend\src\main\java\com\agronexus\api\repository\EscrowRepository.java
+C:\Users\lenovo p14s\Music\AGRONEXUS\backend\src\main\java\com\agronexus\api\repository\KnowledgeEmbeddingRepository.java
 C:\Users\lenovo p14s\Music\AGRONEXUS\backend\src\main\java\com\agronexus\api\repository\OrderRepository.java
 C:\Users\lenovo p14s\Music\AGRONEXUS\backend\src\main\java\com\agronexus\api\repository\ProductFavoriteRepository.java
 C:\Users\lenovo p14s\Music\AGRONEXUS\backend\src\main\java\com\agronexus\api\repository\ProductRepository.java

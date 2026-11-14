@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/config/app_assets.dart';
+
 import 'dart:ui';
+
 import 'package:frontend/services/api_service.dart';
 import 'package:frontend/services/auth_provider.dart';
 import 'package:frontend/services/draft_service.dart';
@@ -16,7 +19,8 @@ class TransporterWaypointScreen extends StatefulWidget {
   });
 
   @override
-  State<TransporterWaypointScreen> createState() => _TransporterWaypointScreenState();
+  State<TransporterWaypointScreen> createState() =>
+      _TransporterWaypointScreenState();
 }
 
 class _TransporterWaypointScreenState extends State<TransporterWaypointScreen> {
@@ -38,7 +42,8 @@ class _TransporterWaypointScreenState extends State<TransporterWaypointScreen> {
 
   Future<void> _fetchCurrentGps() async {
     try {
-      final pos = await LocationServiceFactory.getService().getCurrentLocation();
+      final pos = await LocationServiceFactory.getService()
+          .getCurrentLocation();
       if (mounted) setState(() => _currentPos = pos);
     } catch (_) {}
   }
@@ -57,8 +62,8 @@ class _TransporterWaypointScreenState extends State<TransporterWaypointScreen> {
       orderId: widget.orderId,
       latitude: _currentPos!.latitude,
       longitude: _currentPos!.longitude,
-      waypointNote: _noteController.text.trim().isEmpty 
-          ? 'En route waypoint check-in' 
+      waypointNote: _noteController.text.trim().isEmpty
+          ? 'En route waypoint check-in'
           : _noteController.text.trim(),
       token: ApiService.globalAccessToken,
     );
@@ -68,7 +73,9 @@ class _TransporterWaypointScreenState extends State<TransporterWaypointScreen> {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Waypoint logged successfully into corridor tracking mesh.'),
+            content: Text(
+              'Waypoint logged successfully into corridor tracking mesh.',
+            ),
             backgroundColor: Color(0xFF16A34A),
           ),
         );
@@ -77,7 +84,9 @@ class _TransporterWaypointScreenState extends State<TransporterWaypointScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Failed to transmit waypoint update. Check connection.'),
+            content: Text(
+              'Failed to transmit waypoint update. Check connection.',
+            ),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -96,10 +105,11 @@ class _TransporterWaypointScreenState extends State<TransporterWaypointScreen> {
       body: Stack(
         children: [
           Positioned.fill(
-            child: Image.network(
-              'https://img.freepik.com/premium-photo/agriculture-project-africa_943281-36244.jpg?w=2000',
+            child: Image.asset(
+              AppAssets.cover,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(color: const Color(0xFF0F382C)),
+              errorBuilder: (_, __, ___) =>
+                  Container(color: const Color(0xFF0F382C)),
             ),
           ),
           SafeArea(
@@ -141,14 +151,21 @@ class _TransporterWaypointScreenState extends State<TransporterWaypointScreen> {
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.gps_fixed, color: Color(0xFF6CF8BB), size: 18),
+                              const Icon(
+                                Icons.gps_fixed,
+                                color: Color(0xFF6CF8BB),
+                                size: 18,
+                              ),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
                                   _currentPos != null
                                       ? 'Lat: ${_currentPos!.latitude.toStringAsFixed(4)}° N, Lon: ${_currentPos!.longitude.toStringAsFixed(4)}° E'
                                       : 'Acquiring satellite RTK lock...',
-                                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                  ),
                                 ),
                               ),
                             ],
@@ -166,7 +183,9 @@ class _TransporterWaypointScreenState extends State<TransporterWaypointScreen> {
                             hintStyle: const TextStyle(color: Colors.white38),
                             filled: true,
                             fillColor: Colors.white.withOpacity(0.1),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -176,18 +195,27 @@ class _TransporterWaypointScreenState extends State<TransporterWaypointScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF16A34A),
                               padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                             onPressed: _isLoading ? null : _submitWaypoint,
                             child: _isLoading
                                 ? const SizedBox(
                                     height: 20,
                                     width: 20,
-                                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
                                   )
                                 : const Text(
                                     'Transmit Waypoint Update',
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: Colors.white,
+                                    ),
                                   ),
                           ),
                         ),

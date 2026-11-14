@@ -1,11 +1,14 @@
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:provider/provider.dart';
 
+import '../config/app_assets.dart';
 import '../services/auth_provider.dart';
 import '../services/api_service.dart';
+import '../config/google_sign_in_config.dart';
 import '../theme/app_theme.dart';
 import 'register_screen.dart';
 
@@ -20,6 +23,8 @@ class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   static final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile'],
+    clientId: kIsWeb ? GoogleSignInConfig.clientId : null,
+    serverClientId: GoogleSignInConfig.clientId,
   );
 
   final _formKey = GlobalKey<FormState>();
@@ -242,13 +247,9 @@ class _LoginScreenState extends State<LoginScreen>
       body: Stack(
         children: [
           Positioned.fill(
-            child: Image.network(
-              'https://img.freepik.com/premium-photo/agriculture-project-africa_943281-36244.jpg?w=2000',
+            child: Image.asset(
+              AppAssets.cover,
               fit: BoxFit.cover,
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return Container(color: const Color(0xFF0f5132));
-              },
               errorBuilder: (context, error, stackTrace) {
                 return Container(color: const Color(0xFF0f5132));
               },
@@ -283,9 +284,7 @@ class _LoginScreenState extends State<LoginScreen>
                                         color: Colors.white,
                                         borderRadius: BorderRadius.circular(10),
                                         image: const DecorationImage(
-                                          image: AssetImage(
-                                            'assets/images/agronexus.jpg',
-                                          ),
+                                          image: AssetImage(AppAssets.logo),
                                           fit: BoxFit.cover,
                                         ),
                                       ),
@@ -334,7 +333,9 @@ class _LoginScreenState extends State<LoginScreen>
                                     color: Colors.black.withValues(alpha: 0.85),
                                     borderRadius: BorderRadius.circular(24),
                                     border: Border.all(
-                                      color: Colors.white.withValues(alpha: 0.2),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.2,
+                                      ),
                                     ),
                                   ),
                                   clipBehavior: Clip.antiAlias,
@@ -420,7 +421,9 @@ class _LoginScreenState extends State<LoginScreen>
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.2),
+                  ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -615,7 +618,9 @@ class _LoginScreenState extends State<LoginScreen>
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.2),
+                    ),
                   ),
                   child: const Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
@@ -658,11 +663,15 @@ class _LoginScreenState extends State<LoginScreen>
                 hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                  borderSide: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.2),
+                  ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                  borderSide: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.2),
+                  ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -696,11 +705,15 @@ class _LoginScreenState extends State<LoginScreen>
                 hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                  borderSide: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.2),
+                  ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                  borderSide: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.2),
+                  ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -819,7 +832,9 @@ class _LoginScreenState extends State<LoginScreen>
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.2))),
+                Expanded(
+                  child: Divider(color: Colors.white.withValues(alpha: 0.2)),
+                ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   child: Text(
@@ -831,7 +846,9 @@ class _LoginScreenState extends State<LoginScreen>
                     ),
                   ),
                 ),
-                Expanded(child: Divider(color: Colors.white.withValues(alpha: 0.2))),
+                Expanded(
+                  child: Divider(color: Colors.white.withValues(alpha: 0.2)),
+                ),
               ],
             ),
             const SizedBox(height: 12),

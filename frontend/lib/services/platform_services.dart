@@ -120,7 +120,9 @@ class MockCameraIdentityService implements IdentityService {
   Future<bool> verifyFaceOrBiometric() async {
     // Bypass OS-level credential prompt (local_auth) and simulate an in-app camera face scan
     // This pairs perfectly with the custom UI dialog in RegisterScreen
-    await Future.delayed(const Duration(seconds: 2)); // Simulated neural facial mesh validation
+    await Future.delayed(
+      const Duration(seconds: 2),
+    ); // Simulated neural facial mesh validation
     return true; // Returns true upon successful face capture
   }
 }

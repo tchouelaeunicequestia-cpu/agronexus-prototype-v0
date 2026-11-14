@@ -22,5 +22,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // Used by AuthController login and JwtAuthFilter to look up users by email
     Optional<User> findByEmail(String email);
 
+    Optional<User> findByGoogleSubject(String googleSubject);
+
     List<User> findByIsVerifiedFalse();
 }
