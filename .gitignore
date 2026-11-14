@@ -1,0 +1,38 @@
+# --- Secrets: never commit ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.jks
+*.keystore
+google-services.json
+GoogleService-Info.plist
+application-local.yml
+application-secret*.yml
+
+# --- Backend (Spring Boot / Maven) ---
+backend/target/
+backend/.mvn/
+*.class
+*.log
+
+# --- Frontend (Flutter) ---
+frontend/.dart_tool/
+frontend/build/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+frontend/**/ephemeral/
+frontend/android/.gradle/
+frontend/android/local.properties
+frontend/ios/Pods/
+
+# --- Firmware (PlatformIO) ---
+firmware/.pio/
+
+# --- IDE and OS ---
+.vscode/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
